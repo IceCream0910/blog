@@ -15,7 +15,7 @@ image:
 
 
 ### 예제
-
+```java
    	public static void main(String[] args) {
 		// 주석문 실습
 		// 이 부분을 주석처리 해서 프로그램이 실행되도록 만들어 보세요.
@@ -32,5 +32,5 @@ image:
 		 */
 
 	}
-
+```
 ---

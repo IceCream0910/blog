@@ -10,7 +10,7 @@ image:
 ### 오늘은 java를 이용해 학생의 성적을 입력하는 프로그램을 만들어보겠습니다.
 그럼 아래 코드.
 ## Score.java
-~~~
+```java
 package Lecture190602;
 import java.util.ArrayList;
 import java.util.Scanner;
@@ -115,11 +115,11 @@ System.out.println("검색결과가 없습니다.");
 }
 }
 }
-~~~
+```
 
 ## Student.java
 
-~~~
+```java
 package Lecture190602;
 public class Student {
 private String name;
@@ -158,6 +158,6 @@ public void setMat(int mat) {
 this.mat = mat;
 }
 }
-~~~
+```
 
 > 코드 사용하실 때 필요한 파일 Import 되어 있는지 확인하시고, 패키지명과 클래스명은 자기걸로 바꿔주세요.

@@ -7,7 +7,7 @@ image:
 ---
 
 ### 변수 종류
-
+```java
     public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		// double a = 3.14;
@@ -29,7 +29,10 @@ image:
 		System.out.println(d);
 	}
 }
+```
+
   1. 변수 2개 선언 후 4칙연산
+  ```java
 		int a = 10;
 		int b = 20;
 		int c = a + b;
@@ -47,11 +50,11 @@ image:
 		// int a , b; a =10; b =20;
 		int d = 2 * b + c;
 		System.out.println(d);
-
+```
 --- 
 
 ### 문제 1
-
+```java
     public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		int iphoneX = 1000;
@@ -62,12 +65,12 @@ image:
 		double totalPrice = (iphoneX + 2 * airpod) + 0.1 * (iphoneX + 2 * airpod);
 		System.out.println(totalPrice);
 	}
-
+```
 --- 
 
 
 ### 문제 2
-
+```java
     	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		/*
@@ -90,12 +93,12 @@ image:
 			System.out.print("재수강 입니다");
 		}
 	}
-
+```
 --- 
 
 
 ### 문제 3
-
+```java
     	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		int bigmac = 5000;
@@ -109,7 +112,7 @@ image:
 			System.out.print("현우는 배가 안 고프다");
 		}
 	}
-
+```
 --- 
 
 이클립스 코드 정렬 = Ctrl + Shift + F

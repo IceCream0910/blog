@@ -13,7 +13,7 @@ image:
 
 ---
 
-~~~
+```java
 package Tetris;
 import java.awt.Color;
 import java.awt.Graphics;
@@ -271,7 +271,7 @@ game.dropDown();
 }.start();
 }
 }
-~~~
+```
 
 
 ## jar file로 export하는 법

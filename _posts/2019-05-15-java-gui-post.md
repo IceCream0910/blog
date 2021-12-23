@@ -32,7 +32,7 @@ image:
 ### 백문이 불여일견
 ## Frame 예제
 
-~~~
+```java
 import java.awt.Frame;
 public class FrameTest1
 {
@@ -45,7 +45,7 @@ f.setBounds(100, 100, 300, 300); //창크기를 설정
 f.setVisible(true); //창보이기 값 설정
 }
 }
-~~~
+```
 실행해보면 창이 하나 나옵니다.
 
 ![중간 이미지](https://miro.medium.com/max/848/1*vjkgn0tlwxpMcWWLCDNQKw.png)
@@ -54,7 +54,7 @@ f.setVisible(true); //창보이기 값 설정
 ---
 
 ## Frame 상속 예제
-~~~
+```java
 import java.awt.Frame;
 public class FrameTest extends Frame
 {
@@ -69,13 +69,13 @@ public static void main(String args[])
 FrameTest Obj = new FrameTest(); //FrameTest 클래스 obj 객체 선언
 }
 }
-~~~
+```
 ![중간 이미지](https://miro.medium.com/max/865/1*IKPUIm-egVZ-mewX_kzwhw.png)
 
 ---
 > Panel — 컴포넌트들을 그룹 별로 묶어서 처리 — 생성자:Panel()
 
-~~~
+```java
 import java.awt.*;
 public class PanelTest extends Frame {
 public PanelTest(String str) {
@@ -93,8 +93,7 @@ public static void main (String[] args) {
 new PanelTest("패널 테스트");
 }
 }
-~~~
-
+```
 ![중간 이미지](https://miro.medium.com/max/893/1*Tb5QXmwA3G3eNwNCzbAALA.png)
 
 ---
@@ -107,7 +106,7 @@ new PanelTest("패널 테스트");
 
 
 ## Dialog 예제
-~~~
+```
 import java.awt.Dialog;
 import java.awt.Frame;
 public class ModelessDialog extends Frame
@@ -127,7 +126,7 @@ d.setSize(200,200);
 d.setVisible(true);
 }
 }
-~~~
+```
 ![중간 이미지](https://miro.medium.com/max/1041/1*XLj4gkTm7bKkrg4B7f8xtA.png)
 
 ---
@@ -135,13 +134,13 @@ d.setVisible(true);
 ## AWT 컨테이너
 - button 만들기 —
 
-~~~
+```java
 Button(); //버튼 선언
 new Button(""); //버튼 이름 정해주기
-~~~
+```
 
 ### Button 예제 코드
-~~~
+```java
 package dfsfd;
 import java.awt.Button;
 import java.awt.Frame;
@@ -179,7 +178,7 @@ public static void main(String args[])
 new Button1("버튼 만들기");
 }
 }
-~~~
+```
 
 ![중간 이미지](https://miro.medium.com/max/853/1*pNzi0SDK9dDQdFKKE2CoOw.png)
 
@@ -195,7 +194,7 @@ new Button1("버튼 만들기");
 - CheckboxGroup — 객체를 생성해서 지정해주면 라디오 버튼이 됩니다.
 
 ### Checkbox 예제 코드
-~~~
+```java
 package dfsfd;
 import java.awt.Checkbox;
 import java.awt.CheckboxGroup;
@@ -243,7 +242,7 @@ public static void main(String args[])
 new Checkbox1("체크 박스 테스트");
 }
 }
-~~~
+```
 ![중간 이미지](https://miro.medium.com/max/1001/1*XNkHe5Bo4dknaFhw-tl8Kg.png)
 
 치킨은 맛있죠
@@ -264,7 +263,7 @@ new Checkbox1("체크 박스 테스트");
 - void select(String str) — 지정된 항목으로 설정
 
 ### Choice 예제
-~~~
+```java
 package dfsfd;
 import java.awt.Choice;
 import java.awt.Frame;
@@ -290,7 +289,7 @@ public static void main(String args[]) {
 new Choice1("초이스 테스트");
 }
 }
-~~~
+```
 ![중간 이미지](https://miro.medium.com/max/906/1*n-IxwRTTG--sPUYx2DfQaw.png)
 ---
 
@@ -300,7 +299,7 @@ new Choice1("초이스 테스트");
 - setAlignment(int align) — 정렬 상태 설정
 
 ### Label 예제 코드
-~~~
+```java
 package dfsfd;
 import java.awt.Color;
 import java.awt.Frame;
@@ -338,7 +337,7 @@ public static void main(String args[])
 new LableTest("레이블 테스트");
 }
 }
-~~~
+```
 ![중간 이미지](https://miro.medium.com/max/932/1*UQcaB6olGp9VU8IZpE7Q2A.png)
 
 컬러풀
@@ -349,7 +348,7 @@ new LableTest("레이블 테스트");
 - Choice 주요 메소드와 동일
 
 ### choice 예제 코드
-~~~
+```java
 package dfsfd;
 import java.awt.Frame;
 import java.awt.List;
@@ -381,7 +380,7 @@ public static void main(String args[])
 new ListTest(" 선택 리스트");
 }
 }
-~~~
+```
 
 ![중간 이미지](https://miro.medium.com/max/855/1*eOcnT-09xjv5ysUEog-YSA.png)
 ---
@@ -397,7 +396,7 @@ new ListTest(" 선택 리스트");
 - void setText(String t) — 표시되는 텍스트를 지정된 텍스트로 설정
 
 ### Textfield 예제 코드
-~~~
+```java
 package dfsfd;
 import java.awt.Frame;
 import java.awt.Label;
@@ -432,7 +431,7 @@ public static void main(String args[])
 new TextField1("TextField 테스트");
 }
 }
-~~~
+```
 ![중간 이미지](https://miro.medium.com/max/965/1*wJ78zOL_gOTdyat9KWMLUw.png)
 ---
 
@@ -444,7 +443,7 @@ new TextField1("TextField 테스트");
 - TextArea(String text, int rows, int columns, int scrollbars) — 행수와 열수를 지정하고 스크롤바 표시여부를 설정해서 생성
 
 ### Textarea 예제 코드
-~~~
+```java
 package dfsfd;
 import java.awt.Color;
 import java.awt.Font;
@@ -486,7 +485,7 @@ public static void main(String args[])
 new TextArea1("Text Area 테스트");
 }
 }
-~~~
+```
 ![중간 이미지](https://miro.medium.com/max/980/1*1P3lgjgZFqyR6KCIwESagQ.png)
 ---
 ## 메뉴 컴포넌트
@@ -497,7 +496,7 @@ new TextArea1("Text Area 테스트");
 - PopupMenu : 동적 메뉴를 만들 때 사용
 
 ### 메뉴 예제 코드
-~~~
+```java
 package dfsfd;
 import java.awt.CheckboxMenuItem;
 import java.awt.Frame;
@@ -548,7 +547,7 @@ public static void main(String args[])
 new Menu1("메뉴 테스트 ");
 }
 }
-~~~
+```
 ![중간 이미지](https://miro.medium.com/max/1058/1*0fvEHs4YEXR1VBnKU1A0ig.png)
 
 그림판 같은데서 많이 보던거

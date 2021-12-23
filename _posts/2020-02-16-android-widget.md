@@ -42,22 +42,22 @@ width와 height는 아래 중 하나를 선택하여 입력해주면 됩니다.
 글자를 '버튼'으로 바꿔보겠습니다.
 그다음 android:backgroundTint 속성을 통해 배경색도 바꿉니다.
 
-최종 xml
-~~~
+xml
+```xml
     <Button
         android:id="@+id/button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="버튼"
         android:backgroundTint="#f0f000"/>
-~~~
+```
 
 ### 이제 java코드를 통해 버튼을 클릭하면 Toast가 출력되게 해보겠습니다.
 Toast란 화면 하단 중앙에 회색으로 표시되는 알림...(?)입니다. 보시면 뭔지 아실겁니다.
 
 우선 java로 가서 button을 선언해주어야 합니다.
 
-~~~
+```java
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -65,13 +65,13 @@ Toast란 화면 하단 중앙에 회색으로 표시되는 알림...(?)입니다
         Button btn = (Button) findViewById(R.id.button); //이 부분 추가
     }
 }
-~~~
+```
 
 주석이 있는 부분을 보시면 됩니다. Button 객체의 이름을 btn으로 선언해주었고, findViewByld를 통해 레이아웃과 연결해줍니다.
 이 부분은 모든 widget과 마찬가지입니다.
 이제 버튼이 클릭될 때 이벤트를 추가합니다
 
-~~~
+```java
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,7 +88,7 @@ Toast란 화면 하단 중앙에 회색으로 표시되는 알림...(?)입니다
         });
     }
     
-~~~
+```
 setOnClickListener를 사용하면 됩니다.
 실행해볼까요?
 ![중간이미지](https://i.imgur.com/JEHTKXH.png)
@@ -98,20 +98,15 @@ setOnClickListener를 사용하면 됩니다.
 
 ## TextView 
 
-~~~
+```xml
     <TextView
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="텍스트뷰" />
         
-~~~
+```
 
 버튼과 마찬가지로 xml에 추가해줍니다. 
 그다음도 역시 버튼처럼 java에 선언해줍니다.
 단순히 글자를 표시하기 위함이면 굳이 선언할 필요가 없지만, 만약 상황에 따라 TextView의 글자가 바뀌어야 한다면 선언해주어야 합니다.
-
-다음에는 버튼을 누르면 Textview의 글자가 바뀌도록 해보겠습니다.
-~~~
-
-다음시간에 계속

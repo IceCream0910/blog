@@ -4,7 +4,7 @@ title: "Spring Boot 간단한 rest api 만들기"
 description: "스프링부트 이용해 json 데이터 반환하는 rest api 만들기"
 author: sal
 categories: [ Spring Boot ]
-image: 
+image: https://www.liksi.tech/wp-content/uploads/2019/11/Plan-de-travail-1@0.75x-100.jpg
 ---
 
 먼저 Spring Boot 프로젝트를 만들기 위한 기본 설정을 시작한다.
@@ -31,7 +31,7 @@ finish를 누르면 생성이 완료된다.
 
 프로젝트 생성이 완료되면, Controll라는 Directory를 생성하고, TestController라는 컨트롤러 클래스를 만들어준다.
 build.gradle파일에 dependencies에 다음과 같이 세팅한다.
-~~~
+```gradle
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -39,10 +39,10 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
-~~~
+```
 
 TestController.java에는 아래와 같이 입력해준다.
-~~~
+```java
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
@@ -59,7 +59,7 @@ public class TestController {
         return json;
     }
 }
-~~~
+```
 @GetMapping("/test")는 GET이라는 메소드를 /test가 호출되면 실행한다는 의미이다.
 { name : 'icecream'} 이라는 json 데이터를 반환한다.
 

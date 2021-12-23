@@ -13,13 +13,12 @@ categories: [ JAVA ]
 		 - final 선언 시 변경 안됨.
 
 ### 예제
-
+```java
    	final int j = 10;
 		//3에는 값을 단 한 번 담을 수 있음.
 		//이제 j 값을 변경할 수 없습니다.
 		System.out.println(j);
 
 		j=11; //변경 안됨
-
---- 
+```
 

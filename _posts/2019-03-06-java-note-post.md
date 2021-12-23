@@ -59,54 +59,54 @@ int a =1;
 
 
 int to String
-~~~
+```java
 String str = Integer.toString(i);
 String str = “” + i;
-~~~
+```
 String to int
-~~~
+```java
 int i = Integer.parseInt(str);
 int i = Integer.valueOf(str).intValue();
-~~~
+```
 double to String
-~~~
+```java
 String str = Double.toString(d);
-~~~
+```
 long to String
-~~~
+```java
 String str = Long.toString(l);
-~~~
+```
 float to String
-~~~
+```java
 String str = Float.toString(f);
-~~~
+```
 String to double
-~~~
+```java
 double d = Double.valueOf(str).doubleValue();
-~~~
+```
 String to long
-~~~
+```java
 long l = Long.valueOf(str).longValue();
 long l = Long.parseLong(str);
-~~~
+```
 String to float
-~~~
+```java
 float f = Float.valueOf(str).floatValue();
-~~~
+```
 ASCII Code to String
-~~~
+```java
 String char = new Character((char)i).toString();
-~~~
+```
 Integer to ASCII Code
-~~~
+```java
 int i = (int) c;
-~~~
+```
 Integer to boolean
-~~~
+```java
 boolean b = (i != 0);
 boolean to Integer
 int i = (b)? 1 : 0;
-~~~
+```
 되게 많다. 자주 쓰이는 건 위에 몇 개 정도이다.
 
 ---
@@ -133,7 +133,7 @@ int i = (b)? 1 : 0;
 - 어떠한 조건을 만족하거나 만족하지 않을 때 특정 코드를 실행하도록 하는 <mark>조건문</mark>
 
 #### 기본 형식
-~~~
+```java
 if(조건) {
 //참일때 실행될 코드
 }
@@ -143,7 +143,7 @@ else if(조건2) {
 else {
 //모두 아닐 때 실행될 코드
 }
-~~~
+```
 
 ---
 
@@ -159,11 +159,11 @@ else {
 - 반복문의 한 종류로 많이 사용됨.
 
 #### 예시
-~~~
+```java
 for (int i =0; i<5;i++) {
 //반복 코드
 }
-~~~
+```
 
 괄호 안에는 조건을 넣는데
 0부터 5까지 5번 반복하고 싶으면 위처럼 하면 됨. 괄호 끝에 i++는 i를 1씩증가시킨다는 뜻.(i=i+1의 약식코드)
@@ -174,38 +174,36 @@ for (int i =0; i<5;i++) {
 
 - 자료를 저장하는 공간으로 개념 자체는 변수와 비슷한데,이건 index를 통해 특정 위치의 값을 변경하거나 삭제, 가져올 수 있음.
 
-~~~
+```java
 int[] array = new int[11];
-~~~
+```
 또는
-~~~
+```java
 int array[] = new int[11];
-~~~
+```
 new int[]에서 대괄호 안에 있는 숫자는 배열의 크기를 의미
 이렇게 말고, 아예 선언이랑 배열 안에 값을 지정하는 방법
 
-~~~
+```java
 int[] array = {1, 2, 3, 4, 5};
-~~~
+```
 
 배열도 역시 자료의 타입이랑 변수 타입이랑 맞춰줘야 함.
 문자를 배열에 넣으려면
 
-~~~
+```java
 String[] array = {"a", "b", "c", "d");
-~~~
+```
 배열의 index는 0부터 시작
 위 예제에서 a를 가져오려면 index 0값을 가져와야 함.
 가져오는 방법은
 
 배열의 이름[index값];
-~~~
+```java
 array[0];
-
-~~~
+```
 값을 수정하는 것도 마찬가지
-~~~
+```java
 array[0] = 3;
-~~~
+```
 
-# 끝

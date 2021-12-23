@@ -7,6 +7,8 @@ categories: [ Android ]
 image: 
 ---
 
+
+
 # 1. Layout 클래스
 
 UI 구성 시 사용되는 대표적인 레이아웃 클래스들
@@ -100,7 +102,7 @@ ex) 채팅 앱에서 메인 화면 구성과 같이 탭으로 이루어진 UI
 ## 레이아웃 사용 예제
 
 레이아웃을 사용할 때는 다양한 속성들을 이용해 레이아웃을 구성할 수 있다.
-~~~
+```xml
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
@@ -115,7 +117,7 @@ ex) 채팅 앱에서 메인 화면 구성과 같이 탭으로 이루어진 UI
             android:layout_height="wrap_content"
             android:text="BUTTON1" />
 </LinearLayout>
-~~~
+```
 
 ---
 
@@ -134,22 +136,22 @@ ex) 채팅 앱에서 메인 화면 구성과 같이 탭으로 이루어진 UI
 Button1이라는 id를 가진 버튼을 추가해보는 코드.
 1. layout.xml 파일에 버튼 Widget을 추가한다.
 
-~~~
+```xml
 <Button
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:id="@+id/button1"
     android:text="Button Example" />
-~~~
+```
 
 2. JAVA 코드에서 Button 선언
 
-~~~
+```java
   Button button1 = (Button) findViewById(R.id.button1) ;
-~~~
+```
 
 3. 버튼 클릭 이벤트 생성
-~~~
+```java
 @Override
    protected void onCreate(Bundle savedInstanceState) {
 
@@ -162,4 +164,5 @@ Button1이라는 id를 가진 버튼을 추가해보는 코드.
            }
        });
    }
-~~~
+```
+[https://recipes4dev.tistory.com/](https://recipes4dev.tistory.com/)에서 레이아웃 설명 이미지를 가져왔습니다.

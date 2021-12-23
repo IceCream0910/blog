@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "JAVA 웹 크롤링"
+title: "JAVA로 웹 크롤링하기"
 description: "java로 웹에서 정보를 가져오는 방법."
 author: sal
 categories: [ JAVA ]
@@ -18,15 +18,15 @@ image:
 - IOException를이용한 try/catch문은 예외처리에 사용
 
 ### 기본 사용법
-~~~
+```java
 Elements element = doc.select(“div.home_news”); //가져올 div id
   for (Element el : element.select("li")) { //select("")부분에 가져올 부분의 태그(li,a, ul등)
 System.out.println(el.text());
 }
-~~~
+```
 ---
 ## 네이버 스포츠 뉴스
-~~~
+```java
 String url = "https://sports.news.naver.com/wfootball/index.nhn";
 Document doc = null;
 try {
@@ -44,9 +44,9 @@ System.out.println(el.text());
 System.out.println("===========================");
 }
 }
-~~~
+```
 실행하면 아래와 같이 출력
-~~~
+```console
 스포츠 주요뉴스
 ===========================
 수아레스 “‘핵이빨 사건’ 이후 비인간적 대우 받았다”
@@ -70,10 +70,10 @@ System.out.println("===========================");
 “마르셀리노, 골든볼 이강인 좀 써라”…발렌시아 팬 성원 폭발
 당장의 야심이냐 후일 도모냐, 친정 첼시 관심에 고민 빠진 램파드
 ===========================
-~~~
+```
 ---
 ## 네이버 날씨
-~~~
+```java
 System.out.println("지역명을 입력하세요 : ");
 Scanner sc = new Scanner(System.in);
 String station = sc.next();
@@ -92,9 +92,9 @@ System.out.println(el.text());
 }
 System.out.println("===========================");
 }
-~~~
+```
 실행하면 아래와 같이 출력
-~~~
+```console
 지역명을 입력하세요 :수내
 날씨를 불러오는 중입니다.
 (현재 온도, 체감온도, 내일 최저, 내일 최고, 모레 최저, 모레 최고)형식으로 출력됩니다.
@@ -106,11 +106,11 @@ System.out.println("===========================");
 17
 28
 ===========================
-~~~
+```
 ---
 
 ## 청와대 국민청원
-~~~
+```java
 String url = "http://www1.president.go.kr/petitions";
 Document doc = null;
 try {
@@ -125,18 +125,18 @@ System.out.println(el.text());
 }
 System.out.println("===========================");
 }
-~~~
+```
 실행하면 아래와 같이 출력
-~~~
+```console
 ===========================
 분류 기타 제목 버닝썬 VIP룸 6인을 수사해 주세요 청원 만료일 19.05.11 참여인원 213,327명
 분류 정치개혁 제목 문재인 대통령의 탄핵을 청원합니다. 청원 만료일 19.05.30 참여인원 250,219명
 분류 인권/성평등 제목 우리딸을 성폭행한 후 잔인하게 목졸라 죽인 극악무도한 살인마를 사형시켜 주세요 청원 만료일 19.07.04 참여인원 273,040명
 ===========================
-~~~
+```
 ---
 ## 멜론 차트
-~~~
+```java
 String url = "https://www.melon.com/chart/index.htm";
 Document doc = null;
 try {
@@ -159,9 +159,9 @@ System.out.println(result2);
 }
 System.out.println("===========================");
 }
-~~~
+```
 실행하면 아래와 같이 출력
-~~~
+```console
 실시간 음원 차트(멜론)
 (제목, 아티스트, 앨범아티스트, 앨범명)순으로 표시됩니다.
 — — — — — — — -
@@ -177,10 +177,10 @@ Speak Your Mind (Deluxe)
 임재현
 임재현
 사랑에 연습이 있었다면 (이하생략)
-~~~
+```
 ---
 ## 네이버 실시간 검색어
-~~~
+```java
 String url = "https://www.naver.com/";
 Document doc = null;
 try {
@@ -198,10 +198,10 @@ System.out.println(result);
 }
 System.out.println("===========================");
 }
-~~~
+```
 
 실행하면 아래와 같이 출력
-~~~
+```console
 실시간 급상승 검색어
 ===========================
 1 축구결과
@@ -225,4 +225,4 @@ System.out.println("===========================");
 19 추성훈
 20 박지성
 ===========================
-~~~
+```

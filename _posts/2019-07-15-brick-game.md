@@ -15,7 +15,7 @@ image:
 
 ## Main.java — 기본 창 띄워줌
 
-~~~
+```java
 package brickBracker;
 import javax.swing.JFrame;
 public class Main {
@@ -30,13 +30,13 @@ obj.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 obj.add(gamePlay);
 }
 }
-~~~
+```
 
 ---
 
 ## Gameplay.java — 전체적인 게임로직
 
-~~~
+```java
 package brickBracker;
 import java.awt.Color;
 import java.awt.Font;
@@ -195,13 +195,13 @@ public void keyTyped(KeyEvent e) {
 // TODO Auto-generated method stub
 }
 }
-~~~
+```
 
 ---
 
 ## Mapgenerator.java —블록들과 공 위치 지정&표시
 
-~~~
+```java
 package brickBracker;
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -237,7 +237,7 @@ public void setBrickValue(int value, int row, int col) {
 map[row][col] = value;
 }
 }
-~~~
+```
 
 ## jar file로 export하는 법
 

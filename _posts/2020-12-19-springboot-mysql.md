@@ -4,7 +4,7 @@ title: "Spring Boot와 MySQL DB 연결하기"
 description: "스프링부트 이용해 DB에서 데이터 받아오기"
 author: sal
 categories: [ Spring Boot, MySQL ]
-image: 
+image: https://media.vlpt.us/images/hj8853/post/e3d4ef3d-3a2b-4606-a9ff-4daddda17a05/mysql.jpg
 ---
 
 # MySQL

@@ -7,6 +7,7 @@ image:
 ---
 
 ### for문 예제
+```java
     public static void main(String[] args) {
 		// TODO Auto-generated method stub
 
@@ -43,12 +44,12 @@ image:
 			System.out.println(a);
 		}
 	}
-
+```
 --- 
 
 
 ### for문을 이용한 구구단 출력
-
+```java
 public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		for(int i = 2; i<=9; i++)
@@ -68,10 +69,11 @@ public static void main(String[] args) {
 		}
 
 	}
-
+```
 --- 
 
 ### if문 예제
+```java
    public static void main(String[] args) {
 		// TODO Auto-generated method stub
 
@@ -83,13 +85,13 @@ public static void main(String[] args) {
 
 
 	}
-
+```
 --- 
 
 
 
 ### if문 예제
-  
+  ```java
 public static void main(String[] args) {
 	    int num = 60; //정수형 num에 60으로 초기화
 
@@ -109,6 +111,6 @@ public static void main(String[] args) {
 	    	System.out.println("공장 ㄱㄱ"); //"공장 ㄱㄱ"출력
 	    }
 	}
-
+```
 --- 
 
