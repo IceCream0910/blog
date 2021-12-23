@@ -240,7 +240,7 @@ img, img:hover {
     color: #333;
     padding: 0;
     display: flex;
-    border-radius:15px;
+    border-radius: 15px;
     align-items:center;
     .author-thumb {
         width:40px;
@@ -248,6 +248,7 @@ img, img:hover {
         margin-right: 7px;
     }
     .card {
+        border-radius: 15px;
         border:0;
         &:hover {           
            .card-title a { 
@@ -290,6 +291,7 @@ img, img:hover {
         margin-top: 10px;
     }
     .img-thumb {
+        border-radius: 15px;
         object-fit:cover;
         height:240px;
         width:100%;
@@ -684,6 +686,7 @@ body.active-side {
         right: 25px;
         display: flex;
         left: unset;
+        top:70px;
         z-index:0;
     }
     .share {
