@@ -41,6 +41,19 @@
         <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
 	</noscript>
 
+    <!-- Begin Sidebar Navigation
+================================================== -->
+
+    <div class="sidebar">
+    </div>
+    <div id="blackover-nav" class="blackover"></div>
+
+    {% include search-lunr.html %}
+
+
+    <!-- End Sidebar Navigation
+================================================== -->
+
 
     <div class="site-content {% if page.url == '/' %} firstpage {% endif %}">
 
@@ -50,7 +63,7 @@
     ================================================== -->
 
             <a class="navbar-brand" href="{{ site.baseurl }}/">
-                <img src="{{ site.baseurl }}/{{ site.logo }}" alt="{{ site.name }}">
+                <h4>태인</h4>
             </a>
 
 

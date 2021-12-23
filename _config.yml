@@ -17,10 +17,10 @@ authors:
   sal:
     name: 태인
     display_name: 태인
-    avatar: 'assets/images/emoji-unscreen.gif'
+    avatar: 
     email: icecream2370@kakao.com
     web: https://icecream0910.github.io
-    twitter: 
+    twitter: ""
     description: ""
 
 # Plugins
