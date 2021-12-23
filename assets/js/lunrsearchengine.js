@@ -21,15 +21,15 @@ var documents = [{% for page in site.pages %}{% if page.url contains '.xml' or p
     "body": "{{ page.date | date: "%Y/%m/%d" }} - {{ page.content | markdownify | replace: '.', '. ' | replace: '</h2>', ': ' | replace: '</h3>', ': ' | replace: '</h4>', ': ' | replace: '</p>', ' ' | strip_html | strip_newlines | replace: '  ', ' ' | replace: '"', ' ' }}"{% assign counter = counter | plus: 1 %}
     }{% if forloop.last %}{% else %}, {% endif %}{% endfor %}];
 
-var idx = lunr(function () {
-    this.ref('id')
-    this.field('title')
-    this.field('body')
+    var idx = new lunr.Index;
+    idx.ref('id');
+    idx.field('title');
+    idx.field('body');
 
     documents.forEach(function (doc) {
-        this.add(doc)
-    }, this)
-});
+        idx.add(doc)
+    }, idx)
+    
 function lunr_search(term) {
     document.getElementById('lunrsearchresults').innerHTML = '<ul></ul>';
     if(term) {
