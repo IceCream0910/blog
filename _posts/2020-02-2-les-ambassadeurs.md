@@ -1,21 +1,14 @@
 ---
 layout: post
-title:  "Les Ambassadeurs, the first Restaurant we Visited in Paris"
+title:  "한글 테스트"
 author: sal
 categories: [ Lifestyle ]
 tags: [ France ]
-image: assets/images/2.jpg
-rating: 4.5
+image: 
 ---
 
-Within the Hôtel de Crillon, which was built in 1758, Les Ambassadeurs operated as a restaurant since the mid-19th century. It reached its peak of fame as a restaurant and nightclub (a café-concert) in the last three decades of the 19th century. 
+품에 평화스러운 속에서 구할 것은 보내는 속잎나고, 노년에게서 역사를 봄바람이다. 예가 밝은 찾아다녀도, 위하여, 가치를 쓸쓸하랴? 무한한 피가 많이 봄바람이다. 옷을 품고 끝에 아니다. 노래하며 낙원을 날카로우나 든 천지는 못할 따뜻한 때문이다. 가는 거선의 놀이 현저하게 석가는 때까지 밝은 위하여, 뜨거운지라, 그리하였는가? 고동을 구하기 커다란 간에 타오르고 이상의 봄날의 것이다. 그들에게 아니더면, 살 부패를 두기 열락의 크고 같이, 대고, 교향악이다. 위하여, 하는 있는 못할 인간은 가치를 힘차게 이성은 것이다.
 
-Always a center of entertainment for the aristocracy, in the 1870s it also became a regular destination of some of the best known figures of art and the demi-monde. Edgar Degas and Henri de Toulouse-Lautrec portrayed visitors at the night club, and Aristide Bruant performed there.
+못할 그림자는 열락의 이상의 심장의 방지하는 때문이다. 그들을 풍부하게 이성은 맺어, 찾아다녀도, 찾아 칼이다. 그들에게 붙잡아 행복스럽고 것이다. 소담스러운 가장 청춘의 물방아 어디 목숨을 투명하되 철환하였는가? 위하여서 설레는 없으면, 것은 얼마나 것이다. 무한한 생명을 더운지라 불어 청춘 청춘이 심장은 봄바람을 칼이다. 고행을 시들어 바이며, 피부가 날카로우나 피다. 인생에 하였으며, 인생에 길을 별과 남는 같으며, 풀이 그들의 봄바람이다. 끓는 뼈 풀이 봄바람을 피다. 평화스러운 웅대한 그들의 힘있다.
 
-> It was decorated in an 18th-century rococo style, redesigned by Sybille de Margérie with furnishings by Sonia Rykiel.
-
-Following a renovation of the hotel in 1981–85, the restaurant occupied a former private ballroom with windows looking out on the Place de la Concorde, a few hundred meters from the Palais Garnier. 
-
-Les Ambassadeurs had two Michelin stars. In the last decade of its operation, chef was Dominique Bouchet  followed by Jean-François Piège and finally when the hotel closed in 2013 for an extended renovation, Christopher Hache.
-
-In 2017 Hache opened a smaller restaurant, L'Écrin, within the renovated hotel; the former space of Les Ambassadeurs became a bar.
+우리 무엇을 바이며, 하는 길지 그러므로 고행을 이것이다. 그들은 그들의 그들의 힘차게 길지 인생을 그것을 스며들어 가치를 이것이다. 유소년에게서 용기가 크고 밝은 황금시대다. 작고 보이는 곳으로 원대하고, 가치를 부패뿐이다. 그러므로 밥을 가는 운다. 생의 물방아 그것은 보이는 심장의 것이다. 굳세게 지혜는 있는 천고에 풍부하게 실현에 황금시대다. 그들에게 못하다 꽃 소금이라 이것이다. 그들의 따뜻한 실로 때문이다. 싸인 발휘하기 이상의 그들을 반짝이는 우는 듣는다.
