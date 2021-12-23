@@ -3,7 +3,7 @@ layout: post
 title: "AWS Elastic Beanstalk 배포"
 description: "AWS Elastic Beanstalk Node.js 애플리케이션 배포하기"
 author: sal
-categories: [ AWS ]
+categories: [ AWS, node.js ]
 image: https://i.imgur.com/2M0Rg4t.png
 ---
 
