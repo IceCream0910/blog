@@ -17,11 +17,10 @@ authors:
   sal:
     name: 태인
     display_name: 태인
-    avatar: 
+    avatar: "assets/images/avatar_taein.png"
     email: icecream2370@kakao.com
-    web: https://icecream0910.github.io
-    twitter: ""
-    description: ""
+    web: "https://icecream0910.github.io"
+    description: "새로움에 끊임없이 도전하는, 그런 개발자를 꿈꾸고 있습니다."
 
 # Plugins
 plugins:

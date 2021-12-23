@@ -18,10 +18,9 @@
         </div>
         <div class="card-body">
             <h2 class="card-title">
-                <a class="text-dark" href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
-                {% if post.rating %}
+                <a class="text-dark" href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a> {% if post.rating %}
                 <div class="mb-2 mt-2 font-weight-normal">
-                {% include star_rating_postbox.html %}
+                    {% include star_rating_postbox.html %}
                 </div>
                 {% endif %}
             </h2>
@@ -38,8 +37,7 @@
                 {% endif %}
                 </span>
                 <span class="author-meta">
-                <span class="post-name font-weight-bold">{{ author.display_name }}</span> 
-                {% endif %}
+                <span class="post-name font-weight-bold">{{ author.display_name }}</span> {% endif %}
                 <span class="post-date">{{ post.date | date_to_string }}</span>
                 </span>
                 <div class="clearfix"></div>

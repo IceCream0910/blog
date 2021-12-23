@@ -3,7 +3,7 @@
 ---
 
 $brown: #B59F62;
-$teal: #40FFDC;
+$teal: #966fd6;
 $black: #111;
 $primary: $teal;
 $dark:    $black;
@@ -250,6 +250,7 @@ img, img:hover {
     .card {
         border-radius: 15px;
         border:0;
+        width:100%;
         &:hover {           
            .card-title a { 
                 background-size: 100% 100%;
@@ -281,6 +282,7 @@ img, img:hover {
        font-size:14px;
         border-top:0;
         padding: 1rem 1.25rem;
+        border-radius:15px;
         a {
             color:inherit;
             font-weight:700;
@@ -294,7 +296,7 @@ img, img:hover {
         border-radius: 15px;
         object-fit:cover;
         height:240px;
-        width:100%;
+        width:90%;
         object-position:top;
     }
 }
@@ -314,7 +316,7 @@ img, img:hover {
         .img-thumb {
             object-fit:cover;
             height:400px;
-            width:100%;
+            width:90%;
             object-position:top;
         }
     }
@@ -563,6 +565,12 @@ img, img:hover {
     bottom: 25px;
     z-index: 1026;
 }
+.tagsBtn {
+    position: fixed;
+    left: 30px;
+    bottom: 25px;
+    z-index: 1026;
+}
 .modal-open .modal {
     background: rgba(0,0,0,0.3);
 }
@@ -688,6 +696,14 @@ body.active-side {
         left: unset;
         top:70px;
         z-index:0;
+    }
+    .tagsBtn {
+        position:absolute;
+        right: 35px;
+        left: unset;
+        top:40px;
+        z-index:0;
+        text-decoration: underline;
     }
     .share {
         display: flex;
