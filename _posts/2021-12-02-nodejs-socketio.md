@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "node.js로 socket.io 서버 만들기(코로나콕 실시간 확진자 서버)"
+title: "node.js로 socket.io API 서버 만들기"
 author: sal
 categories: [ node.js, socket.io ]
 image: 
