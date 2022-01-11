@@ -6,6 +6,8 @@ categories: [ React ]
 image: https://media.vlpt.us/images/jini_eun/post/107f5cfb-e97c-4c4c-b997-06098062e5b3/image.png
 ---
 
+[생활코딩 - React](https://inf.run/MpTT) 강의를 들으며 정리한 내용입니다.
+
 ## React란?
 React는 웹 프레임워크의 하나로, facebook에서 개발한 라이브러리입니다. 싱글 페이지 애플리케이션이나 모바일 애플리케이션의 개발에 사용될 수 있습니다.
 
