@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "React 컴포넌트, props"
+title: "React - 컴포넌트, props"
 author: sal
 categories: [ React ]
 image: https://media.vlpt.us/images/jini_eun/post/107f5cfb-e97c-4c4c-b997-06098062e5b3/image.png
@@ -206,7 +206,86 @@ sub를 받아오려면 {this.props.sub}를 넣어주면 되는겁니다.
 
 ---
 
+그런데 이렇게 App.js에 컴포넌트를 모두 작성하게 되면 App.js 코드가 길어지고 가독성도 떨어집니다.
+그렇다면 이 Component들을 별도의 파일로 분리해봅시다.
+
+### Component 파일로 분리
+src 하위에 components라는 디렉토리를 만들어줍시다.
+그 아래에는 Intro.js와 Content.js 파일을 만들겠습니다.
+
+src/Intro.js를 아래와 같이 작성해봅시다.
+class 부분은 App.js에 작성한것과 동일합니다.
+맨 위의 import 부분과 맨 아래의 export 부분만 추가해주면 됩니다.
+
+
+```js
+import React, {Component} from 'react';
+
+
+class Intro extends Component {
+  render() {
+    return (
+      <header>
+        <h1>{this.props.title}</h1>
+        {this.props.sub}
+      </header>
+    );
+  }
+}
+
+  export default Intro;
+```
+
+Content.js도 마찬가지로 작성해줍니다.
+
+```js
+import React, {Component} from 'react';
+
+
+class Content extends Component {
+    render() {
+      return (
+        <article>
+          <h2>{this.props.title}</h2>
+          {this.props.desc}
+        </article>
+      );
+    }
+  }
+
+  export default Content;
+```
+이제 App.js로 가서 기존 컴포넌트 코드 부분을 지우고, 맨 위 import 부분에 아래와 같이 추가해 파일로 분리해준 component들을 가져와줍시다.
+```js
+import Intro from "./components/Intro" 
+import Content from "./components/Content"
+```
+
+이제 App.js가 훨씬 깔끔해졌습니다. 이렇게 Component들을 별도의 파일로 분리하면 컴포넌트가 많아져도 가독성 있게 각각의 소스코드를 유지할 수 있습니다.
+```js
+import React, {Component} from 'react';
+import Intro from "./components/Intro" 
+import Content from "./components/Content"
+import './App.css';
+
+
+
+class App extends Component {
+  render() {
+    return (
+      <div className="App">
+        <Intro title="Hello" sub="My name is Yun Taein"></Intro>
+        <Content title="I'm a student." desc="My future job is a software developer."></Content>
+      </div>
+    );
+  }
+}
+
+export default App;
+```
+
+---
+
 React의 시작이자 가장 핵심적인 내용들입니다. 컴포넌트와 props 만으로 React를 이용해 많은 것들을 할 수 있습니다.
 
-컴포넌트와 Props에 대해서 정리된 공식문서를 첨부합니다.
-[https://reactjs-kr.firebaseapp.com/docs/components-and-props.html](https://reactjs-kr.firebaseapp.com/docs/components-and-props.html)
+컴포넌트와 Props에 대해서 정리된 [공식문서](https://reactjs-kr.firebaseapp.com/docs/components-and-props.html)를 첨부합니다.

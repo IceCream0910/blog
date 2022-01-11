@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "React 시작하기(개발환경 세팅)"
+title: "React - 시작하기(개발환경 세팅)"
 author: sal
 categories: [ React ]
 image: https://media.vlpt.us/images/jini_eun/post/107f5cfb-e97c-4c4c-b997-06098062e5b3/image.png
