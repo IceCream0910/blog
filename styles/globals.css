@@ -2,20 +2,194 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url("https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css");
+@import url('https://cdn.jsdelivr.net/gh/toss/tossface/dist/tossface.css');
+
 :root {
-  --background: #ffffff;
+  --background: #fff;
   --foreground: #171717;
+  --blur: #f2f3f770;
+  --secondary: #f2f3f7;
+  --primary: #3b82f6;
+  --card-bg: #f2f3f7;
+  --card-shadow: rgba(0, 0, 0, 0.1);
+  --tag-bg: #f0f0f0;
+  --tag-text: #707274;
+  --category-bg-1: #8ce895;
+  --category-bg-2: #78cbfa;
+  --category-bg-3: #d8ccff;
+  --category-text-1: #1d4a21;
+  --category-text-2: #07141b;
+  --category-text-3: #7934ab;
+  --date-text: #6b7280;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #1a1b1e;
     --foreground: #ededed;
+    --blur: #1a1b1e80;
+    --secondary: #313131;
+    --primary: #93abff;
+    --card-bg: #2c2c31;
+    --card-shadow: rgba(0, 0, 0, 0.3);
+    --tag-bg: #272727;
+    --tag-text: #a7a7a7;
+    --category-bg-1: #1d4a21;
+    --category-bg-2: #07141b;
+    --category-bg-3: #362f65;
+    --category-text-1: #8ce895;
+    --category-text-2: #78cbfa;
+    --category-text-3: #a38af5;
+    --date-text: #9ca3af;
   }
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Wanted Sans Variable", "Wanted Sans", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+}
+
+main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1.2rem;
+  padding-top: 4.5rem !important;
+}
+
+header {
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: var(--blur);
+  backdrop-filter: blur(10px);
+  z-index: 299;
+  border-radius: 0 0 15px 15px;
+}
+
+.header-content {
+  display: flex;
+  margin: 0 auto;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+}
+
+@media (min-width: 1200px) {
+  main {
+    max-width: 1000px;
+  }
+}
+
+@media (min-width: 1400px) {
+  main {
+    max-width: 1200px;
+  }
+}
+
+.tossface {
+  font-family: Tossface;
+}
+
+h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin: 2rem 0 1rem;
+}
+
+h2 {
+  font-size: 1.875rem;
+  font-weight: 600;
+  margin: 1.75rem 0 0.75rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.75rem;
+}
+
+p {
+  margin: 1rem 0;
+  line-height: 1.75;
+}
+
+ul,
+ol {
+  margin: 1rem 0;
+  padding-left: 2rem;
+
+}
+
+li {
+  margin: 0.5rem 0;
+}
+
+a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+blockquote {
+  border-left: 4px solid var(--primary);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: #6b7280;
+}
+
+code {
+  background: var(--secondary);
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.4rem;
+}
+
+.hljs {
+  border-radius: 10px;
+}
+
+img {
+  border-radius: 10px;
+}
+
+article:hover {
+  transform: scale(1.01);
+}
+
+article:active {
+  transform: scale(0.99);
+}
+
+article #post-icon {
+  filter: grayscale(100%) brightness(80%) contrast(110%);
+  opacity: 0.5;
+}
+
+article:hover #post-icon {
+  filter: grayscale(0);
+  opacity: 1;
+}
+
+/* 게시물 상세 페이지 스타일 */
+.post-header {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--secondary);
+}
+
+.post-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--foreground);
+}
+
+.post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  color: var(--date-text);
+  margin-bottom: 1rem;
 }
