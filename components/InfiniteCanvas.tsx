@@ -4,6 +4,15 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { calculateLayout } from '../utils/layout';
 import { ItemNode } from './ItemNode';
 
+interface ItemLayout {
+    x: number;
+    y: number;
+    rotation: number;
+    scale: number;
+    zIndex: number;
+    shape: 'circle' | 'rectangle' | 'triangle';
+}
+
 interface Props {
     items?: Array<{
         id: string;
