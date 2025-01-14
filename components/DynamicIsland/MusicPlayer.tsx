@@ -49,7 +49,7 @@ export const DynamicIslandMusicPlayer = ({ size, title, currentTime, duration, i
   const blurUrl = getEmptyAlbumCover()
   const currentSong = useMemo(() => song?.[now] ?? null, [song, now])
   let imageUrl = currentSong?.attributes?.artwork?.url?.replace('{w}', '500').replace('{h}', '500') ?? ''
-  const [imgSrc, setImgSrc] = useState("https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/42659726/42659726-1734177685435-198138f225b57.jpg")
+  const [imgSrc, setImgSrc] = useState("/podcast-albumart.jpg")
 
 
   useEffect(() => {

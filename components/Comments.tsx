@@ -86,8 +86,9 @@ export default function Comments({ pageId }: CommentsProps) {
                 <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="mt-1 px-6 py-2 bg-blue-500 text-white text-sm rounded-xl 
+                    className="mt-1 px-6 py-2 text-sm rounded-xl 
                    hover:bg-blue-600 transition-colors float-right"
+                    style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary)' }}
                     type="submit"
                 >
                     댓글 남기기

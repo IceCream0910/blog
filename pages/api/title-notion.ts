@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import {normalizeTitle} from 'notion-utils';
+import { normalizeTitle } from 'notion-utils';
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== 'POST') {
@@ -9,13 +9,13 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
   const { block, recordMap } = req.body;
 
-let currentBlock = block;
-  
+  let currentBlock = block;
+
   while (currentBlock) {
     // parent_table이 collection인 경우 title 반환
     if (currentBlock.type === 'page') {
       const title = currentBlock.properties?.title?.[0]?.[0].toString();
-      const link = normalizeTitle(title) + '-' + currentBlock.id + '#' + block.id.replaceAll('-', '');
+      const link = currentBlock.id + '#' + block.id.replaceAll('-', '');
       return res.status(200).json({ title, link });
     }
 

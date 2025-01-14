@@ -21,13 +21,9 @@ export const PageHead: React.FC<any> = ({ title, description, pageId, image, url
       <meta property='og:site_name' content="태인의 Blog" />
       <meta property='twitter:domain' content="https://blog.yuntae.in" />
 
-      {description && (
-        <>
-          <meta name='description' content={description} />
-          <meta property='og:description' content={description} />
-          <meta name='twitter:description' content={description} />
-        </>
-      )}
+      <meta name='description' content={"코드, 그리고 그 사이의 생각을 기록합니다."} />
+      <meta property='og:description' content={"코드, 그리고 그 사이의 생각을 기록합니다."} />
+      <meta name='twitter:description' content={"코드, 그리고 그 사이의 생각을 기록합니다."} />
 
       {socialImageUrl ? (
         <>

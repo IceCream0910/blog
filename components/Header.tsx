@@ -31,11 +31,6 @@ export const Header: React.FC = () => {
                     <Link href="/forest" className="no-underline text-inherit">
                         <h3 className="text-sm m-0">forest</h3>
                     </Link>
-                    <Link href="/graph" className="no-underline text-inherit">
-                        <h3 className="text-sm m-0">
-                            graph
-                        </h3>
-                    </Link>
                     <h3 className="text-sm m-0 cursor-pointer" onClick={() => setShowSearch(true)}>
                         <IonIcon name="search" style={{ marginTop: '4px' }} />
                     </h3>

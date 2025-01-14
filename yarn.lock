@@ -512,6 +512,18 @@
   dependencies:
     tslib "^2.8.0"
 
+"@tanstack/react-virtual@^3.11.2":
+  version "3.11.2"
+  resolved "https://registry.yarnpkg.com/@tanstack/react-virtual/-/react-virtual-3.11.2.tgz#d6b9bd999c181f0a2edce270c87a2febead04322"
+  integrity sha512-OuFzMXPF4+xZgx8UzJha0AieuMihhhaWG0tCqpp6tDzlFwOmNBPYMuLOtMJ1Tr4pXLHmgjcWhG6RlknY2oNTdQ==
+  dependencies:
+    "@tanstack/virtual-core" "3.11.2"
+
+"@tanstack/virtual-core@3.11.2":
+  version "3.11.2"
+  resolved "https://registry.yarnpkg.com/@tanstack/virtual-core/-/virtual-core-3.11.2.tgz#00409e743ac4eea9afe5b7708594d5fcebb00212"
+  integrity sha512-vTtpNt7mKCiZ1pwU9hfKPhpdVO2sVzFQsxoVBGtOSHxlrRRzYr8iQ2TlwbAcRYCcEiZ9ECAM8kBzH0v2+VzfKw==
+
 "@types/earcut@^2.1.0":
   version "2.1.4"
   resolved "https://registry.yarnpkg.com/@types/earcut/-/earcut-2.1.4.tgz#5811d7d333048f5a7573b22ddc84923e69596da6"

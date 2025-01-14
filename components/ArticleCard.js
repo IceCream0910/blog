@@ -1,27 +1,16 @@
 import { motion } from 'framer-motion';
-import { useTransitionStore } from '../store/transition';
 
 export const ArticleCard = ({ post, onClick }) => {
-    const transitionStore = useTransitionStore();
-
-    const handleClick = (e) => {
-        transitionStore.setTransitionData(e.currentTarget.getBoundingClientRect(), post.id);
-        onClick && onClick();
-    };
-
     return (
         <motion.article
             layout
             layoutId={post.id}
-            onClick={handleClick}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            onClick={onClick}
             style={{
                 background: 'var(--card-bg)',
                 position: 'relative',
             }}
-            className="rounded-3xl overflow-hidden hover:shadow-lg transition-all ease-in cursor-pointer aspect-square flex flex-col p-6"
+            className="rounded-3xl overflow-hidden hover:shadow-lg transition-all ease-in cursor-pointer aspect-none flex flex-col p-6 md:aspect-square"
         >
             <motion.div
                 layoutId={`cover-${post.id}`}
@@ -42,7 +31,6 @@ export const ArticleCard = ({ post, onClick }) => {
 
             <motion.div className="relative z-10 flex flex-col h-full">
                 <motion.div
-                    layoutId={`category-${post.id}`}
                     className="flex items-center gap-2 mb-4"
                 >
                     <span
@@ -55,8 +43,8 @@ export const ArticleCard = ({ post, onClick }) => {
                         }}
                         className="text-sm"
                     >
-                        <span className='tossface'>{post.properties.카테고리.select?.name.substring(0, 2)}</span>
-                        {post.properties.카테고리.select?.name.substring(2)}
+                        <span>{post.properties.카테고리.select?.name}</span>
+
                         &nbsp;&nbsp;
                         {post.properties.태그.multi_select.map((tag) => (
                             <span
@@ -78,7 +66,7 @@ export const ArticleCard = ({ post, onClick }) => {
                     style={{
                         color: 'var(--foreground)',
                         wordBreak: 'keep-all',
-                        overflowWrap: 'break-word'
+                        overflowWrap: 'break-word',
                     }}
                     className="text-2xl font-bold m-0 w-2/3 h-full"
                 >
@@ -96,7 +84,7 @@ export const ArticleCard = ({ post, onClick }) => {
                 {post.icon && (
                     <motion.div
                         layoutId={`icon-${post.id}`}
-                        className="absolute bottom-0 right-0 w-2/5"
+                        className="absolute bottom-0 right-0 w-1/5 md:w-2/5"
                     >
                         <img
                             src={post.icon.emoji || post.icon.file?.url || post.icon.external?.url}

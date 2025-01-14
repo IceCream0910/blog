@@ -1,11 +1,11 @@
 import * as React from 'react'
 import { useState, useEffect, useRef } from 'react'
-import styles from './styles.module.css'
 import DynamicIsland from './DynamicIsland/DynamicIsland'
 import { DynamicIslandMusicPlayer } from './DynamicIsland/MusicPlayer'
 import Squircle from './DynamicIsland/Squircle'
 import { useIntersection } from './DynamicIsland/useIntersection'
 import { DynamicIslandSize } from './DynamicIsland/types'
+import { motion } from 'framer-motion'
 
 const useIntersectionObserver = (ref: React.RefObject<Element>, options?: IntersectionObserverInit) => {
   const [isIntersecting, setIsIntersecting] = React.useState(true);
@@ -47,7 +47,7 @@ const progressBarStyles = {
   top: 0,
   left: 0,
   height: '100%',
-  backgroundColor: 'var(--foreground)',
+  backgroundColor: 'var(--primary)',
   transition: 'width 0.1s ease',
 };
 
@@ -174,24 +174,26 @@ export const Podcast: React.FC<any> = ({ title }) => {
           alignItems: 'center',
           gap: '1em'
         }}>
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
             onClick={togglePlayPause}
             style={{
               width: '30px',
               height: '30px',
               borderRadius: '50%',
               border: 'none',
-              background: 'var(--foreground)',
-              color: 'var(--secondary)',
+              background: 'var(--primary-light)',
+              color: 'var(--primary)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: 0,
+              padding: '5px',
             }}
           >
             {isPlaying ? <PauseIcon /> : <PlayIcon />}
-          </button>
+          </motion.button>
           <span style={{ opacity: .5, fontSize: '14px' }}>{formatTime(currentTime)} / {formatTime(duration)}</span>
           <div style={{ flex: 1 }}>
             <div
@@ -202,7 +204,7 @@ export const Podcast: React.FC<any> = ({ title }) => {
                 borderRadius: '2px',
                 cursor: 'pointer',
                 overflow: 'hidden',
-                backgroundColor: 'var(--secondary)',
+                backgroundColor: 'var(--primary-light)',
               }}
             >
               <div

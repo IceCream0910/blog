@@ -3,14 +3,14 @@
 @tailwind utilities;
 
 @import url("https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css");
-@import url('https://cdn.jsdelivr.net/gh/toss/tossface/dist/tossface.css');
 
 :root {
   --background: #fff;
   --foreground: #171717;
-  --blur: #f2f3f770;
+  --blur: #f2f4fe40;
   --secondary: #f2f3f7;
-  --primary: #3b82f6;
+  --primary: #5561ea;
+  --primary-light: #f2f4fe;
   --card-bg: #f2f3f7;
   --card-shadow: rgba(0, 0, 0, 0.1);
   --tag-bg: #f0f0f0;
@@ -28,9 +28,10 @@
   :root {
     --background: #1a1b1e;
     --foreground: #ededed;
-    --blur: #1a1b1e80;
+    --blur: #26293820;
     --secondary: #313131;
-    --primary: #93abff;
+    --primary: #7386ee;
+    --primary-light: #262938;
     --card-bg: #2c2c31;
     --card-shadow: rgba(0, 0, 0, 0.3);
     --tag-bg: #272727;
@@ -56,6 +57,11 @@ main {
   margin: 0 auto;
   padding: 1.2rem;
   padding-top: 4.5rem !important;
+}
+
+::selection {
+  background-color: var(--primary-light);
+  color: var(--primary);
 }
 
 header {
@@ -87,10 +93,6 @@ header {
   main {
     max-width: 1200px;
   }
-}
-
-.tossface {
-  font-family: Tossface;
 }
 
 h1 {

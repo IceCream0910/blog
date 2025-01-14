@@ -11,7 +11,6 @@ export default function NotFound() {
     <main className="container mx-auto px-4 py-8">
       <PageHead
         title="404 Not Found"
-        description="새로움에 끊임없이 도전하는 태인의 Blog"
         url="https://blog.yuntae.in"
       />
       <h1>이런 {':{'}</h1>
@@ -21,8 +20,8 @@ export default function NotFound() {
         whileTap={{ scale: 0.98 }}
         onClick={() => router.push('/')}
         style={{
-          background: 'var(--primary)',
-          color: 'var(--background)',
+          background: 'var(--primary-light)',
+          color: 'var(--primary)',
         }}
         className="text-white font-bold py-2 px-4 rounded-xl mt-4"
       >

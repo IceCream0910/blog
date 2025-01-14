@@ -5,75 +5,13 @@ import 'prismjs/themes/prism-tomorrow.css'
 import 'katex/dist/katex.min.css'
 import { useEffect, useState } from 'react'
 import { calculateReadingTime } from '../utils/readingTime'
-import { loadPrismComponentsWithRetry } from '../utils/load-prism-components';
 import { Podcast } from '../components/Podcast'
 import Comments from '../components/Comments'
 import { Backlinks } from '../components/Backlinks'
 import { PageHead } from '../components/PageHead'
 import { motion } from 'framer-motion';
-import { useTransitionStore } from '../store/transition';
 import { useRouter } from 'next/router';
-
-const Code = dynamic(() =>
-    import('../packages/react-notion-x/third-party/code').then(async m => {
-        // add / remove any prism syntaxes here
-        await loadPrismComponentsWithRetry([
-            () => import('prismjs/components/prism-markup-templating.js'),
-            () => import('prismjs/components/prism-markup.js'),
-            () => import('prismjs/components/prism-bash.js'),
-            () => import('prismjs/components/prism-c.js'),
-            () => import('prismjs/components/prism-cpp.js'),
-            () => import('prismjs/components/prism-csharp.js'),
-            () => import('prismjs/components/prism-docker.js'),
-            () => import('prismjs/components/prism-java.js'),
-            () => import('prismjs/components/prism-js-templates.js'),
-            () => import('prismjs/components/prism-coffeescript.js'),
-            () => import('prismjs/components/prism-diff.js'),
-            () => import('prismjs/components/prism-git.js'),
-            () => import('prismjs/components/prism-go.js'),
-            () => import('prismjs/components/prism-graphql.js'),
-            () => import('prismjs/components/prism-handlebars.js'),
-            () => import('prismjs/components/prism-less.js'),
-            () => import('prismjs/components/prism-makefile.js'),
-            () => import('prismjs/components/prism-markdown.js'),
-            () => import('prismjs/components/prism-objectivec.js'),
-            () => import('prismjs/components/prism-ocaml.js'),
-            () => import('prismjs/components/prism-python.js'),
-            () => import('prismjs/components/prism-reason.js'),
-            () => import('prismjs/components/prism-rust.js'),
-            () => import('prismjs/components/prism-sass.js'),
-            () => import('prismjs/components/prism-scss.js'),
-            () => import('prismjs/components/prism-solidity.js'),
-            () => import('prismjs/components/prism-sql.js'),
-            () => import('prismjs/components/prism-stylus.js'),
-            () => import('prismjs/components/prism-swift.js'),
-            () => import('prismjs/components/prism-wasm.js'),
-            () => import('prismjs/components/prism-yaml.js'),
-        ]);
-
-        return m.Code;
-    }),
-);
-const Collection = dynamic(() =>
-    import('../packages/react-notion-x/third-party/collection').then(
-        (m) => m.Collection
-    )
-)
-const Equation = dynamic(() =>
-    import('../packages/react-notion-x/third-party/equation').then((m) => m.Equation)
-)
-const Pdf = dynamic(
-    () => import('../packages/react-notion-x/third-party/pdf').then((m) => m.Pdf),
-    {
-        ssr: false
-    }
-)
-const Modal = dynamic(
-    () => import('../packages/react-notion-x/third-party/modal').then((m) => m.Modal),
-    {
-        ssr: false
-    }
-)
+import { Code, Collection, Equation, Pdf, Modal } from '../utils/notion-components'
 
 export async function getStaticPaths() {
     return {
@@ -145,22 +83,6 @@ export async function getStaticProps({ params }) {
 }
 
 export default function Page({ pageId, recordMap }) {
-    const router = useRouter();
-    const transitionStore = useTransitionStore();
-    const isTarget = pageId === transitionStore.targetId;
-
-    useEffect(() => {
-        // 컴포넌트 마운트 시 transition 데이터 초기화
-        return () => {
-            transitionStore.clearTransitionData();
-        };
-    }, []);
-
-    // 뒤로가기 핸들러
-    const handleBackNavigation = () => {
-        router.back();
-    };
-
     if (!recordMap || !recordMap.block || Object.keys(recordMap.block).length === 0) {
         return <div>Invalid page data</div>;
     }
@@ -219,26 +141,22 @@ export default function Page({ pageId, recordMap }) {
 
     return (
         <motion.main
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            onAnimationComplete={() => {
-                // 애니메이션 완료 후 스크롤 위치 초기화
-                window.scrollTo(0, 0);
-            }}
         >
             <PageHead
                 title={title || "태인의 Blog"}
                 url={`https://blog.yuntae.in/${pageId}`}
-                description="새로움에 끊임없이 도전하는 태인의 Blog"
                 image={`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/social-image?id=${pageId}`}
             />
 
             <div className='page-container'>
                 <motion.div
-                    layoutId={isTarget ? pageId : undefined}
-                    className='pt-6 pb-0'
+                    className='pt-6 pb-0 sticky z-10'
                 >
                     <motion.div
-                        layoutId={`category-${pageId}`}
                         className="flex items-center gap-2 mb-3"
                     >
                         {category &&
@@ -249,11 +167,12 @@ export default function Page({ pageId, recordMap }) {
                                 }}
                                 className="px-2 py-1 text-sm rounded-full"
                             >
-                                <span className='tossface'>{category.substring(0, 2)}</span>{category.substring(2)}
+                                <span>{category}</span>
                             </span>
                         }
                         {tags && tags.map((tag) => (
                             <span
+
                                 key={tag}
                                 style={{
                                     background: 'var(--tag-bg)',
