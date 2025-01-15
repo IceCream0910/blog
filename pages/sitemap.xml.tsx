@@ -7,14 +7,14 @@ const generateSiteMap = (posts: any[]) => {
     return `<?xml version="1.0" encoding="UTF-8"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
       <url>
-        <loc>${process.env.NEXT_PUBLIC_SITE_URL}</loc>
+        <loc>https://blog.yuntae.in</loc>
         <priority>1.0</priority>
       </url>
       ${posts
             .map((post) => {
                 return `
             <url>
-              <loc>${`${process.env.NEXT_PUBLIC_SITE_URL}/${post.id}`}</loc>
+              <loc>${`https://blog.yuntae.in/${post.id}`}</loc>
               <lastmod>${new Date(post.properties.작성일.date?.start).toISOString()}</lastmod>
             </url>
           `;
