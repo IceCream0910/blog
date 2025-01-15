@@ -16,7 +16,7 @@ import fs from "fs"
         console.log(graph.nodes.length)
         console.log(graph.links.length)
         await new Promise((resolve, reject) => {
-            fs.writeFile(`test0.json`, JSON.stringify(graph), (err) => {
+            fs.writeFile(`notion-graph.json`, JSON.stringify(graph), (err) => {
                 if (err) reject(err)
                 else resolve(``)
             })
