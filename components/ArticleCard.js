@@ -11,7 +11,7 @@ export const ArticleCard = ({ post, onClick }) => {
 
         setIsAnimating(true);
 
-        controls.start({
+        await controls.start({
             scale: [1, 5, 15],
             zIndex: 100,
             filter: ["blur(0px)", "blur(5px)", "blur(15px)"],
