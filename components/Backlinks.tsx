@@ -28,7 +28,6 @@ export const Backlinks: React.FC<BacklinksProps> = ({ currentId }) => {
   React.useEffect(() => {
     if (!backlinks || !map) return;
 
-    // 모든 backlink에 대한 title과 link를 가져오는 Promise 배열 생성
     const promises = backlinks.map(backlink =>
       fetch('/api/title-notion', {
         method: 'POST',
@@ -42,7 +41,6 @@ export const Backlinks: React.FC<BacklinksProps> = ({ currentId }) => {
       }).then(res => res.json())
     );
 
-    // 모든 Promise가 완료되면 결과를 setList
     Promise.all(promises)
       .then(results => {
         // 중복 제거

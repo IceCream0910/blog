@@ -28,9 +28,6 @@ jobs:
         cd notion-graph-generator
         node index.js
   
-    - name: List directory contents
-      run: ls -la
-        
     - name: Upload JSON as artifact
       uses: actions/upload-artifact@v3
       with:
@@ -42,4 +39,4 @@ jobs:
         git config user.name 'github-actions[bot]'
         git config user.email 'github-actions[bot]@users.noreply.github.com'
         git add notion-graph-generator/notion-graph.json
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Update Notion graph JSON" && git push)
+        git diff --quiet && git diff --staged --quiet || (git commit -m "action: update notion graph" && git push)

@@ -11,21 +11,17 @@ const Graph = ({ data }) => {
     useEffect(() => {
         if (!data || !svgRef.current) return;
 
-        // SVG 설정
         const width = window.innerWidth;
         const height = window.innerHeight * 0.8;
         const svg = d3.select(svgRef.current)
             .attr('width', width)
             .attr('height', height);
 
-        // 기존 요소 제거
         svg.selectAll('*').remove();
 
-        // 메인 그룹 요소
         const g = svg.append('g');
         gRef.current = g;
 
-        // Force 시뮬레이션 설정
         const simulation = d3.forceSimulation(data.nodes)
             .force('charge', d3.forceManyBody()
                 .strength(-300)
@@ -151,7 +147,6 @@ const Graph = ({ data }) => {
                 .attr('stroke-width', l => connectedLinks.has(l) ? 2 : 1);
         }
 
-        // 윈도우 리사이즈 이벤트 핸들러
         const handleResize = () => {
             const newWidth = window.innerWidth;
             const newHeight = window.innerHeight * 0.8;
