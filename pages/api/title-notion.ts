@@ -12,7 +12,6 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   let currentBlock = block;
 
   while (currentBlock) {
-    // parent_table이 collection인 경우 title 반환
     if (currentBlock.type === 'page') {
       const title = currentBlock.properties?.title?.[0]?.[0].toString();
       const link = currentBlock.id + '#' + block.id.replaceAll('-', '');

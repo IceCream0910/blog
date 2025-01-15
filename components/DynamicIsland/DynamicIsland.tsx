@@ -1,4 +1,3 @@
-// See https://developer.apple.com/design/human-interface-guidelines/components/system-experiences/live-activities
 import { DynamicIslandSize } from './types'
 import { DynamicIslandSizePresets } from './DynamicIslandSizePresets'
 import { AnimatePresence, motion } from 'framer-motion'

@@ -76,7 +76,7 @@ export const DynamicIslandMusicPlayer = ({ size, title, currentTime, duration, i
       onTimeUpdate(newTime);
     }
   }
-  // progress 계산 수정
+
   const progress = (() => {
     const currentTimeInSeconds = timeToSeconds(currentTime);
     const durationInSeconds = timeToSeconds(duration);

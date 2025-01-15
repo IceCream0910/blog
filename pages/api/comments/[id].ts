@@ -4,7 +4,6 @@ import { NextApiRequest, NextApiResponse } from 'next';
 
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
-// Next.js에서 제공하는 res.json은 \n을 자동으로 추가하기 때문에 새로 만든 함수
 const responseJSON = (res: NextApiResponse, status: number, json: any) => {
   res.status(status).setHeader('Content-Type', 'application/json; charset=utf-8').send(json);
 };

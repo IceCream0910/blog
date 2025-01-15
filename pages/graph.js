@@ -34,13 +34,11 @@ export default function GraphPage() {
         links: data.links.map(({ source, target }) => ({ source, target }))
       };
 
-      // 특정 노드 삭제
       const filteredData = removeNodeAndLinks(
         processedData,
         ['a8174e3c-ad3a-430e-a7c9-1fe8ae303bbb', 'e5f8cfa7-6c5c-48e0-b060-734faa8cb4bb', '515f927b-635b-4ef1-8d79-88609314de2a']
       );
 
-      // 특정 노드 이름 변경
       const renamedData = renameNode(
         filteredData,
         'ff85c8c8-bc33-45ba-bf2f-7970d86506d4',

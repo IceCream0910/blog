@@ -25,12 +25,10 @@ export const Search: React.FC<any> = ({ onClose }) => {
             return;
         }
 
-        // Abort previous request
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
         }
 
-        // Create new abort controller for this request
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
@@ -63,7 +61,6 @@ export const Search: React.FC<any> = ({ onClose }) => {
         })
             .then(res => res.json())
             .then(async (data: any) => {
-                // Only process if this is still the active request
                 if (!abortController.signal.aborted) {
                     await data.results.map(async (result: any) => {
                         try {
@@ -81,7 +78,6 @@ export const Search: React.FC<any> = ({ onClose }) => {
             })
             .catch((error) => {
                 if (error.name === 'AbortError') {
-                    // Ignore abort errors
                     return;
                 }
                 console.error(error);
@@ -90,14 +86,12 @@ export const Search: React.FC<any> = ({ onClose }) => {
     }, []);
 
     const debouncedSearch = React.useMemo(
-        () => debounce(search, 300), // 300ms로 디바운스 시간 증가
+        () => debounce(search, 300),
         [search]
     );
 
     React.useEffect(() => {
         debouncedSearch(query);
-
-        // Cleanup function
         return () => {
             if (abortControllerRef.current) {
                 abortControllerRef.current.abort();
@@ -141,18 +135,14 @@ export const Search: React.FC<any> = ({ onClose }) => {
             const containerRect = container.getBoundingClientRect();
             const itemRect = item.getBoundingClientRect();
 
-            // Check if item is not fully visible
             if (itemRect.bottom > containerRect.bottom) {
-                // If item is below viewport
                 item.scrollIntoView({ behavior: 'smooth', block: 'end' });
             } else if (itemRect.top < containerRect.top) {
-                // If item is above viewport
                 item.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
     }, [selectedIndex]);
 
-    // Add click outside handler
     React.useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (searchBoxRef.current && !searchBoxRef.current.contains(event.target as Node)) {
