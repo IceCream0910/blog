@@ -2,15 +2,16 @@
 import Link from "next/link";
 import { getDatabase } from "../../utils/get-database";
 import { motion } from 'framer-motion';
-import IonIcon from "@reacticons/ionicons";
-import { useRouter } from 'next/navigation';
-import { SliderTabBar } from "../../components/SliderTabBar";
-import { InfiniteCanvas } from "../../components/InfiniteCanvas";
-import { GridItem } from "../../components/GridItem";
 
 export async function getStaticProps() {
   try {
     const data = await getDatabase("ff85c8c8bc3345babf2f7970d86506d4", {
+      sorts: [
+        {
+          property: "title",
+          direction: "ascending"
+        }
+      ],
       filter: {
         property: "Ra%5D%3B",
         select: {
@@ -37,32 +38,19 @@ export async function getStaticProps() {
 }
 
 export default function Forest({ list }) {
-  const GRID_SIZE = 120;
-
-  const calculateGridPositions = (items) => {
-    const positions = [];
-    const cols = Math.ceil(Math.sqrt(items.length));
-
-    items.forEach((item, index) => {
-      positions.push({
-        id: item.id,
-        title: item.properties.이름.title[0]?.plain_text,
-        position: {
-          x: index % cols,
-          y: Math.floor(index / cols)
-        }
-      });
-    });
-    return positions;
-  };
-
-  const gridItems = calculateGridPositions(list);
-
   return (
-    <div style={{ userSelect: 'none' }}>
-      <InfiniteCanvas gridSize={GRID_SIZE} items={gridItems}>
-      </InfiniteCanvas>
-    </div>
+    <main className="container mx-auto px-4 py-8 pb-28">
+      <div className="flex items-center gap-4 flex-wrap">
+        {list.map((post) => (
+          <Link href={`/${post.id}`} key={post.id} className="no-underline transition-all opacity-50 hover:opacity-100">
+            <motion.h2 style={{ color: 'var(--foreground)', wordBreak: 'keep-all', overflowWrap: 'break-word' }}
+              className="text-lg m-0 h-full md:text-2xl" layoutId={`title-${post.id}`}>
+              {post.properties.이름.title[0]?.plain_text}
+            </motion.h2>
+          </Link>
+        ))}
+      </div>
+    </main>
   );
 }
 

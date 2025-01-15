@@ -9,6 +9,9 @@ export const config = {
 };
 
 export default async function handler(req: NextRequest) {
+  const fontBlack = await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/fonts/Pretendard-Black.woff`).then((res) => res.arrayBuffer());
+  const fontRegular = await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/fonts/Pretendard-Regular.woff`).then((res) => res.arrayBuffer());
+
   try {
     const { searchParams } = new URL(req.url);
     const { id } = Object.fromEntries(searchParams);
@@ -20,11 +23,12 @@ export default async function handler(req: NextRequest) {
       },
     });
 
-    const { properties, cover } = await result.json();
+    const data = await result.json();
+    const { properties, cover, icon } = data;
 
     const image = cover?.external?.url || cover?.file?.url || "";
     const title = properties?.['이름']?.title?.[0]?.plain_text || "태인의 Blog";
-    const description = properties?.['설명']?.rich_text?.[0]?.plain_text || "새로움에 끊임없이 도전하는 태인의 Blog";
+    const description = properties?.['설명']?.rich_text?.[0]?.plain_text || "";
     const tags = (properties?.['태그']?.multi_select || []).map((tag: any) => tag.name);
     const author = "태인의 Blog";
     const authorImage = "https://whal.eu/i/EWerYvZ7";
@@ -43,7 +47,8 @@ export default async function handler(req: NextRequest) {
           style={{
             display: 'flex',
             padding: '46px',
-            background: '#1F2027',
+            background: 'linear-gradient(-45deg, #1a1b1e 30%,rgb(61, 71, 130))',
+            backdropFilter: 'blur(30px)',
             color: 'white',
             width: '100%',
             height: '100%',
@@ -60,9 +65,9 @@ export default async function handler(req: NextRequest) {
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <b><h1 style={{ fontSize: '46px', fontWeight: 'bold', paddingTop: '24px' }}>{title}</h1></b>
-              <p style={{ fontSize: '18px', opacity: 0.8 }}>{description}</p>
-              <div style={{ display: 'flex', fontSize: '18px', opacity: 0.6 }}>
+              <b><h1 style={{ fontSize: '56px', fontWeight: 'bold', paddingTop: '24px', fontFamily: '"Black"' }}>{title}</h1></b>
+              {description && <p style={{ fontSize: '24px', opacity: 0.8, fontFamily: '"Regular"' }}>{description}</p>}
+              <div style={{ display: 'flex', fontSize: '22px', opacity: 0.6, fontFamily: '"Regular"' }}>
                 {tags.map((tag: string, i) => (
                   <div
                     key={tag}
@@ -95,25 +100,39 @@ export default async function handler(req: NextRequest) {
               <div
                 style={{
                   display: 'flex',
-                  flexDirection: 'column',
+                  flexDirection: 'column', fontFamily: '"Regular"'
                 }}
               >
                 <div style={{ fontSize: '32px', opacity: 0.8 }}>{author}</div>
-                <div style={{ fontSize: '20px', opacity: 0.8 }}>{publishedAtString}</div>
+                <div style={{ fontSize: '20px', opacity: 0.8 }}>코드, 그리고 그 사이의 생각을 기록합니다.</div>
               </div>
             </div>
           </div>
 
-          {image && (
+
+
+          {icon && icon.type === 'file' && (
             <img
-              src={image}
+              src={icon.file.url}
               style={{
-                width: '35%',
-                height: '100%',
-                objectFit: 'cover',
-                objectPosition: 'center',
-                borderRadius: '5px',
-                marginLeft: '36px',
+                width: '200px',
+                height: '200px',
+                position: 'absolute',
+                bottom: '60px',
+                right: '70px',
+              }}
+            />
+          )}
+
+          {icon && icon.type === 'external' && (
+            <img
+              src={icon.external.url}
+              style={{
+                width: '200px',
+                height: '200px',
+                position: 'absolute',
+                bottom: '60px',
+                right: '70px',
               }}
             />
           )}
@@ -122,6 +141,18 @@ export default async function handler(req: NextRequest) {
       {
         width: 1200,
         height: 630,
+        fonts: [
+          {
+            name: 'Black',
+            data: fontBlack,
+            style: 'normal',
+          },
+          {
+            name: 'Regular',
+            data: fontRegular,
+            style: 'normal',
+          },
+        ],
       },
     );
   } catch (e: any) {

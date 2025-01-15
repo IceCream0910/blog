@@ -1,16 +1,48 @@
-import { motion } from 'framer-motion';
+import { motion, useAnimation } from 'framer-motion';
+import { useState } from 'react';
 
 export const ArticleCard = ({ post, onClick }) => {
+    const controls = useAnimation();
+    const [isAnimating, setIsAnimating] = useState(false);
+
+    const handleClick = async (e) => {
+        e.preventDefault();
+        if (isAnimating) return;
+
+        setIsAnimating(true);
+
+        controls.start({
+            scale: [1, 5, 15],
+            zIndex: 100,
+            filter: ["blur(0px)", "blur(5px)", "blur(15px)"],
+            backgroundColor: ["var(--card-bg)", "var(--background)", "var(--background)"],
+            transition: {
+                duration: 0.5,
+                times: [0, 0.4, 1],
+                ease: "easeInOut"
+            }
+        });
+
+        if (onClick) onClick();
+    };
+
     return (
         <motion.article
-            layout
-            layoutId={post.id}
-            onClick={onClick}
+            animate={controls}
+            layoutId={`container-${post.id}`}
+            onClick={handleClick}
             style={{
                 background: 'var(--card-bg)',
                 position: 'relative',
             }}
             className="rounded-3xl overflow-hidden hover:shadow-lg transition-all ease-in cursor-pointer aspect-none flex flex-col p-6 md:aspect-square"
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            exit={{
+                scale: 1,
+                filter: "blur(0px)",
+                transition: { duration: 0.3 }
+            }}
         >
             <motion.div
                 layoutId={`cover-${post.id}`}
@@ -31,6 +63,7 @@ export const ArticleCard = ({ post, onClick }) => {
 
             <motion.div className="relative z-10 flex flex-col h-full">
                 <motion.div
+                    layoutId={`category-${post.id}`}
                     className="flex items-center gap-2 mb-4"
                 >
                     <span
@@ -62,7 +95,6 @@ export const ArticleCard = ({ post, onClick }) => {
                 </motion.div>
 
                 <motion.h2
-                    layoutId={`title-${post.id}`}
                     style={{
                         color: 'var(--foreground)',
                         wordBreak: 'keep-all',

@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@graphcentral/notion-graph-scraper": "^0.1.0-rc.6"
+  },
+  "type": "module"
+}

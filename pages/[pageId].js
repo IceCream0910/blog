@@ -139,12 +139,22 @@ export default function Page({ pageId, recordMap }) {
         };
     }, []);
 
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0 }
+    };
+
     return (
         <motion.main
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            variants={containerVariants}
         >
             <PageHead
                 title={title || "태인의 Blog"}
@@ -155,9 +165,11 @@ export default function Page({ pageId, recordMap }) {
             <div className='page-container'>
                 <motion.div
                     className='pt-6 pb-0 sticky z-10'
+                    variants={containerVariants}
                 >
                     <motion.div
-                        className="flex items-center gap-2 mb-3"
+                        variants={itemVariants}
+                        className="flex items-center gap-2 mb-3 flex-wrap"
                     >
                         {category &&
                             <span
@@ -184,41 +196,49 @@ export default function Page({ pageId, recordMap }) {
                     </motion.div>
                     <motion.h2
                         layoutId={`title-${pageId}`}
+                        variants={itemVariants}
                         className='text-3xl font-bold m-0'
                     >
                         {title}
                     </motion.h2>
 
                     <motion.span
-                        layoutId={`date-${pageId}`}
+                        variants={itemVariants}
                         style={{ color: 'var(--date-text)' }}
                         className="text-sm m-0"
                     >
                         {properties["cwqu"] && properties["cwqu"][0][1][0][1].start_date + " | "}<span className='tossface'>🕒</span> 읽는 데 {readTime}분 예상
                     </motion.span>
-                    <div className='m-8' />
-                    <Podcast title={title} />
+                    <motion.div variants={itemVariants} className='m-8' />
+                    <motion.div variants={itemVariants}>
+                        <Podcast title={title} />
+                    </motion.div>
                 </motion.div>
 
+                <motion.div variants={itemVariants}>
+                    <NotionRenderer
+                        recordMap={recordMap}
+                        components={{
+                            Code,
+                            Collection,
+                            Equation,
+                            Pdf,
+                            Modal
+                        }}
+                        fullPage={false}
+                        darkMode={darkmode}
+                        showTableOfContents={true}
+                        previewImages={!!recordMap.preview_images}
+                    />
+                </motion.div>
 
-                <NotionRenderer
-                    recordMap={recordMap}
-                    components={{
-                        Code,
-                        Collection,
-                        Equation,
-                        Pdf,
-                        Modal
-                    }}
-                    fullPage={false}
-                    darkMode={darkmode}
-                    showTableOfContents={true}
-                    previewImages={!!recordMap.preview_images}
-                />
-
-                <div className='m-16' />
-                <Backlinks currentId={pageId} />
-                <Comments pageId={pageId} />
+                <motion.div variants={itemVariants} className='m-16' />
+                <motion.div variants={itemVariants}>
+                    <Backlinks currentId={pageId} />
+                </motion.div>
+                <motion.div variants={itemVariants}>
+                    <Comments pageId={pageId} />
+                </motion.div>
             </div>
         </motion.main>
     );

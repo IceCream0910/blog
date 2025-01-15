@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArticleCard } from '../components/ArticleCard';
 import { getDatabase } from "../utils/get-database";
 import IonIcon from "@reacticons/ionicons";
+import { useRouter } from 'next/router';
 
 export async function getStaticProps() {
   try {
@@ -35,8 +36,13 @@ export async function getStaticProps() {
 }
 
 export default function Home({ list }) {
+  const router = useRouter();
+
   return (
     <motion.main
+      initial={{ opacity: 1 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 1 }}
       className="container mx-auto px-4 py-8"
     >
       <PageHead
@@ -60,11 +66,16 @@ export default function Home({ list }) {
 
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {list.map((post) => (
-          <Link href={`/${post.id}`} key={post.id} className="no-underline">
-            <ArticleCard post={post} />
-          </Link>
-        ))}
+        <AnimatePresence>
+          {list.map((post) => (
+            <div key={post.id} className="no-underline">
+              <ArticleCard
+                post={post}
+                onClick={() => router.push(`/${post.id}`)}
+              />
+            </div>
+          ))}
+        </AnimatePresence>
       </div>
     </motion.main>
   );
