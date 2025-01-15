@@ -22,6 +22,7 @@
   --category-text-2: #07141b;
   --category-text-3: #7934ab;
   --date-text: #6b7280;
+  --max-width: 800px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -43,6 +44,7 @@
     --category-text-2: #78cbfa;
     --category-text-3: #a38af5;
     --date-text: #9ca3af;
+    --max-width: 800px;
   }
 }
 
@@ -53,7 +55,7 @@ body {
 }
 
 main {
-  max-width: 800px;
+  max-width: var(--max-width);
   margin: 0 auto;
   padding: 1.2rem;
   padding-top: 4.5rem !important;
@@ -84,14 +86,14 @@ header {
 }
 
 @media (min-width: 1200px) {
-  main {
-    max-width: 1000px;
+  :root {
+    --max-width: 1000px;
   }
 }
 
 @media (min-width: 1400px) {
-  main {
-    max-width: 1200px;
+  :root {
+    --max-width: 1200px;
   }
 }
 

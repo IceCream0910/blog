@@ -1181,10 +1181,18 @@ svg.notion-page-icon {
 .notion-collection {
     align-self: center;
     min-width: 100%;
+    width: calc(var(--max-width) - 40px);
+}
+
+@media screen and (max-width: 800px) {
+    .notion-collection {
+        width: calc(100vw - 40px);
+    }
+
 }
 
 .notion-collection-header {
-    display: flex;
+    display: none;
     align-items: center;
     height: 42px;
     padding: 4px 2px;
@@ -1593,8 +1601,8 @@ svg.notion-page-icon {
 .notion-list-body {
     display: flex;
     flex-direction: column;
-    border-top: 1px solid var(--fg-color-1);
     padding-top: 8px;
+    gap: 5px;
     max-width: 100%;
     overflow: hidden;
 }
