@@ -32,7 +32,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: notion-graph
-        path: notion-graph.json
+        path: ./notion-graph.json
 
     - name: Commit and push if changed
       run: |
