@@ -12,11 +12,29 @@ import { PageHead } from '../components/PageHead'
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { Code, Collection, Equation, Pdf, Modal } from '../utils/notion-components'
+import { getDatabase } from "../utils/get-database"
 
 export async function getStaticPaths() {
-    return {
-        paths: [],
-        fallback: 'blocking'
+    try {
+        const [mainData, forestData] = await Promise.all([
+            getDatabase("1a346171ed574b0a9c1c3f5a29b39919"),
+            getDatabase("ff85c8c8bc3345babf2f7970d86506d4")
+        ]);
+
+        const paths = [...mainData.results, ...forestData.results].map((page) => ({
+            params: { pageId: page.id }
+        }));
+
+        return {
+            paths,
+            fallback: 'blocking'
+        }
+    } catch (error) {
+        console.error('Error fetching databases:', error);
+        return {
+            paths: [],
+            fallback: 'blocking'
+        }
     }
 }
 

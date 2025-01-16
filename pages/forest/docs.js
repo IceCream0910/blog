@@ -43,8 +43,11 @@ export default function Forest({ list }) {
       <div className="flex items-center gap-4 flex-wrap">
         {list.map((post) => (
           <Link href={`/${post.id}`} key={post.id} className="no-underline transition-all opacity-50 hover:opacity-100">
-            <motion.h2 style={{ color: 'var(--foreground)', wordBreak: 'keep-all', overflowWrap: 'break-word' }}
-              className="text-lg m-0 h-full md:text-2xl" layoutId={`title-${post.id}`}>
+            <motion.h2
+              style={{ color: 'var(--foreground)', wordBreak: 'keep-all', overflowWrap: 'break-word' }}
+              className="text-lg m-0 h-full md:text-2xl"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}>
               {post.properties.이름.title[0]?.plain_text}
             </motion.h2>
           </Link>

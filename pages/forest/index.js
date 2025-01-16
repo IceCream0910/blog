@@ -6,6 +6,7 @@ import IonIcon from "@reacticons/ionicons";
 import { useRouter } from 'next/navigation';
 import { SliderTabBar } from "../../components/SliderTabBar";
 
+
 export async function getStaticProps() {
   try {
     const data = await getDatabase("ff85c8c8bc3345babf2f7970d86506d4", {
