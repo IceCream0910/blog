@@ -159,6 +159,20 @@
     padding-left: 15px;
 }
 
+.notion-contentPosition .item.level0>div {
+    margin-left: 0;
+}
+
+.notion-contentPosition .item.level1>div {
+    margin-left: 15px;
+    opacity: 0.7;
+}
+
+.notion-contentPosition .item.level2>div {
+    margin-left: 25px;
+    opacity: 0.7;
+}
+
 .notion-aside a {
     color: var(--fg-color);
     text-decoration: none;
@@ -170,7 +184,7 @@
     justify-content: center;
     align-items: flex-start;
     gap: 50px;
-    max-width: 100%;
+    width: 100%;
 }
 
 .custom-content {
