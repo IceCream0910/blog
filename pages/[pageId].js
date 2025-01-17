@@ -118,12 +118,21 @@ export default function Page({ pageId, recordMap }) {
         tags = []
     }
 
+    const [content, setContent] = useState('');
     const [readTime, setReadTime] = useState(0);
     const [darkmode, setDarkmode] = useState(false);
 
     useEffect(() => {
-        const content = document.querySelector(".notion-page")?.innerText;
-        const text = content
+        const notionPage = document.querySelector(".notion-page");
+        const codeBlocks = notionPage?.querySelectorAll('.notion-code');
+        let body = notionPage?.innerText || '';
+
+        // Remove text content from code blocks
+        codeBlocks?.forEach(codeBlock => {
+            body = body.replace(codeBlock.innerText, '');
+        });
+
+        const text = body
             // 이미지 제거
             .replaceAll(/!\[([^\]]+?)\]\([^)]+?\)/g, '')
             // 링크는 텍스트만 남기고 제거
@@ -139,6 +148,7 @@ export default function Page({ pageId, recordMap }) {
             // 좌우 공백 제거
             .replaceAll("<", " ")
             .trim();
+        setContent(text);
 
         const time = calculateReadingTime(text);
         setReadTime(time);
@@ -154,6 +164,12 @@ export default function Page({ pageId, recordMap }) {
 
         return () => {
             mediaQuery.removeEventListener('change', handleColorSchemeChange);
+        };
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            speechSynthesis.cancel();
         };
     }, []);
 
@@ -229,7 +245,7 @@ export default function Page({ pageId, recordMap }) {
                     </motion.span>
                     <motion.div variants={itemVariants} className='m-8' />
                     <motion.div variants={itemVariants}>
-                        <Podcast title={title} />
+                        <Podcast title={title} content={content} />
                     </motion.div>
                 </motion.div>
 

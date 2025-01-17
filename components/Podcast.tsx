@@ -51,12 +51,13 @@ const progressBarStyles = {
   transition: 'width 0.1s ease',
 };
 
-export const Podcast: React.FC<any> = ({ title }) => {
+export const Podcast: React.FC<any> = ({ title, content = "" }) => {
   const [data, setData] = React.useState<any>(null)
   const [isPlaying, setIsPlaying] = React.useState(false)
   const [showDynamicIsland, setShowDynamicIsland] = React.useState(false)
   const [currentTime, setCurrentTime] = React.useState(0)
   const [duration, setDuration] = React.useState(0)
+  const [useTTS, setUseTTS] = React.useState(false);
   const audioRef = React.useRef<HTMLAudioElement>(null)
   const podcastRef = React.useRef<HTMLDivElement>(null)
   const isPodcastVisible = useIntersectionObserver(podcastRef, { threshold: 0 })
@@ -72,8 +73,11 @@ export const Podcast: React.FC<any> = ({ title }) => {
       },
     })
       .then((res) => res.json())
-      .then((data) => {
-        setData(data)
+      .then((resData) => {
+        setData(resData);
+        if (!resData?.enclosure?.url) {
+          setUseTTS(true);
+        }
       })
 
     return () => {
@@ -102,6 +106,20 @@ export const Podcast: React.FC<any> = ({ title }) => {
       setShowDynamicIsland(true);
     }
   }
+
+  const handleToggleTTS = () => {
+    if (!isPlaying) {
+      const utterance = new SpeechSynthesisUtterance(title + '. ' + content);
+      utterance.onend = () => {
+        setIsPlaying(false);
+      };
+      speechSynthesis.speak(utterance);
+      setIsPlaying(true);
+    } else {
+      speechSynthesis.cancel();
+      setIsPlaying(false);
+    }
+  };
 
   const handleForward = () => {
     if (audioRef.current) {
@@ -149,7 +167,39 @@ export const Podcast: React.FC<any> = ({ title }) => {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
 
-  if (!data || !data.enclosure || data.length === 0) {
+  if (useTTS) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '.5em'
+      }}>
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleToggleTTS}
+          style={{
+            width: '30px',
+            height: '30px',
+            borderRadius: '50%',
+            border: 'none',
+            background: 'var(--primary-light)',
+            color: 'var(--primary)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '5px',
+          }}
+        >
+          {isPlaying ? <PauseIcon /> : <PlayIcon />}
+        </motion.button>
+        <span onClick={handleToggleTTS} className='cursor-pointer' style={{ opacity: .5, fontSize: '14px' }}>음성으로 듣기</span>
+      </div>
+    );
+  }
+
+  if (!data || !data.enclosure?.url) {
     return null;
   }
 
