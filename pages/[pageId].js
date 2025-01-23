@@ -39,39 +39,25 @@ export async function getStaticPaths() {
 }
 
 export async function getStaticProps({ params }) {
-    const { pageId } = params;
-
-    if (!pageId) {
+    const { pageId: rawPageId } = params;
+    if (!rawPageId) {
         return {
-            redirect: {
-                destination: '/',
-                permanent: true
-            }
-        }
+            notFound: true
+        };
     }
 
-    const match = pageId.match(/^(.*)-([a-f0-9]{32})$/);
-    if (pageId.length == 32) {
-        const formattedPageId = pageId.replace(/-/g, '').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5');
-        return {
-            redirect: {
-                destination: `/${formattedPageId}`,
-                permanent: true
-            }
-        };
+    const match = rawPageId.match(/^(.*)-([a-f0-9]{32})$/);
+    let pageId = rawPageId;
+
+    if (pageId.length === 32) {
+        pageId = pageId.replace(/-/g, '').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5');
     } else if (match && match[2]) {
-        const formattedPageId = match[2].replace(/-/g, '').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5');
-        return {
-            redirect: {
-                destination: `/${formattedPageId}`,
-                permanent: true
-            }
-        };
+        pageId = match[2].replace(/-/g, '').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5');
     } else {
-        if (pageId.length != 36) {
+        if (pageId.length !== 36) {
             return {
                 notFound: true
-            }
+            };
         }
     }
 
@@ -172,6 +158,14 @@ export default function Page({ pageId, recordMap }) {
             speechSynthesis.cancel();
         };
     }, []);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            if (window.location.pathname !== `/${pageId}`) {
+                window.history.replaceState(null, '', `/${pageId}`);
+            }
+        }
+    }, [pageId]);
 
     const containerVariants = {
         hidden: { opacity: 0 },
