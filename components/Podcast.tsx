@@ -208,9 +208,8 @@ export const Podcast: React.FC<any> = ({ title, content = "" }) => {
   return (
     <>
       <div ref={podcastRef} className='podcast' style={{
-        width: isPlaying ? '100%' : 'fit-content',
-        marginTop: '-0.6em',
-        marginBottom: '2em',
+        width: '100%',
+        marginTop: '-0.6em'
       }}>
         <audio
           ref={audioRef}
@@ -222,7 +221,7 @@ export const Podcast: React.FC<any> = ({ title, content = "" }) => {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '1em'
+          gap: '0.7em'
         }}>
           <motion.button
             whileHover={{ scale: 1.1 }}
@@ -244,33 +243,12 @@ export const Podcast: React.FC<any> = ({ title, content = "" }) => {
           >
             {isPlaying ? <PauseIcon /> : <PlayIcon />}
           </motion.button>
-          <span style={{ opacity: .5, fontSize: '14px' }}>{formatTime(currentTime)} / {formatTime(duration)}</span>
-          <div style={{ flex: 1 }}>
-            <div
-              onClick={handleWaveformClick}
-              style={{
-                position: 'relative',
-                height: '4px',
-                borderRadius: '2px',
-                cursor: 'pointer',
-                overflow: 'hidden',
-                backgroundColor: 'var(--primary-light)',
-              }}
-            >
-              <div
-                style={{
-                  ...progressBarStyles,
-                  width: `${progress}%`,
-                  animation: isPlaying ? 'wave 1s ease-in-out infinite' : 'none',
-                  transformOrigin: 'center',
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+          <span style={{ opacity: .5, fontSize: '14px' }}>음성으로 듣기</span>
 
-      {(!isPodcastVisible && showDynamicIsland) &&
+        </div>
+      </div >
+
+      {(showDynamicIsland) &&
         <Player title={title}
           currentTime={formatTime(currentTime)}
           duration={formatTime(duration)}
@@ -279,7 +257,8 @@ export const Podcast: React.FC<any> = ({ title, content = "" }) => {
           onTimeUpdate={handleIslandTimeSeek}
           onForward={handleForward}
           onBackward={handleBackward}
-        />}
+        />
+      }
     </>
   )
 }

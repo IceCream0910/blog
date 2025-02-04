@@ -13,6 +13,7 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { Code, Collection, Equation, Pdf, Modal } from '../utils/notion-components'
 import { getDatabase } from "../utils/get-database"
+import IonIcon from '@reacticons/ionicons'
 
 export async function getStaticPaths() {
     try {
@@ -212,7 +213,6 @@ export default function Page({ pageId, recordMap }) {
                         }
                         {tags && tags.map((tag) => (
                             <span
-
                                 key={tag}
                                 style={{
                                     background: 'var(--tag-bg)',
@@ -238,9 +238,6 @@ export default function Page({ pageId, recordMap }) {
                         {properties["cwqu"] && properties["cwqu"][0][1][0][1].start_date + " | "}<span className='tossface'>🕒</span> 읽는 데 {readTime}분 예상
                     </motion.span>
                     <motion.div variants={itemVariants} className='m-8' />
-                    <motion.div variants={itemVariants}>
-                        <Podcast title={title} content={content} />
-                    </motion.div>
                 </motion.div>
 
                 <motion.div variants={itemVariants}>
@@ -261,6 +258,36 @@ export default function Page({ pageId, recordMap }) {
                 </motion.div>
 
                 <motion.div variants={itemVariants} className='m-16' />
+
+                <motion.div variants={itemVariants}>
+                    <Podcast title={title} content={content} />
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="mt-3 px-4 py-2 text-sm rounded-xl hover:bg-blue-600 transition-colors"
+                        style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary)' }}
+                        type="button"
+                        onClick={async () => {
+                            try {
+                                await navigator.share({
+                                    title: "태인의 Blog",
+                                    text: title + " - 태인의 Blog",
+                                    url: "",
+                                });
+                            } catch (error) {
+                                console.error("공유에 실패하였습니다", error);
+                                try {
+                                    await navigator.clipboard.writeText(window.location.href);
+                                } catch (err) {
+                                    console.error("복사에 실패하였습니다", error);
+                                }
+                            }
+                        }}
+                    >
+                        <IonIcon name='share-social-outline' className='relative top-[3px] mr-2' />공유하기
+                    </motion.button>
+                </motion.div>
+
                 <motion.div variants={itemVariants}>
                     <Backlinks currentId={pageId} />
                 </motion.div>

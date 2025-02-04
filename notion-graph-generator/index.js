@@ -5,9 +5,8 @@ import fs from "fs"
      */
     ; (async () => {
         const notionGraph = new NotionGraph({
-            maxDiscoverableNodes: 5000,
-            maxDiscoverableNodesInOtherSpaces: 5000,
-            maxDiscoverableNodesInOtherSpaces: 15,
+            maxDiscoverableNodes: 220,
+            maxDiscoverableNodesInOtherSpaces: 220,
             verbose: true,
         })
         const graph = await notionGraph.buildGraphFromRootNode(

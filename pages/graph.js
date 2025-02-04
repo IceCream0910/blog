@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Graph from "../components/Graph";
+import dummy from "../notion-graph-generator/notion-graph.json";
 
 const removeNodeAndLinks = (data, nodeIds) => {
   const idsToRemove = new Set(nodeIds);
@@ -25,9 +26,13 @@ export default function GraphPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      /*
       if (!process.env.NEXT_PUBLIC_NOTION_GRAPH_URL) return;
       const response = await fetch(process.env.NEXT_PUBLIC_NOTION_GRAPH_URL);
       const data = await response.json();
+      */
+
+      const data = dummy;
 
       const processedData = {
         nodes: data.nodes.map(({ id, title, type }) => ({ id, title, type })),
