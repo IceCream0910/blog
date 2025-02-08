@@ -155,7 +155,7 @@ export const Search: React.FC<any> = ({ onClose }) => {
     }, [onClose]);
 
     return (
-        <div className="fixed w-full h-screen inset-0 bg-black/70 z-50 flex items-center justify-center">
+        <div className="fixed w-full h-screen inset-0 bg-black/70 flex items-center justify-center">
             <div ref={searchBoxRef} className="w-[600px] max-w-[90%] bg-[#1E1E1E] rounded-xl shadow-2xl overflow-hidden">
                 <div className="relative">
                     <input

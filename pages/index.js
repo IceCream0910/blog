@@ -6,6 +6,7 @@ import { ArticleCard } from '../components/ArticleCard';
 import { getDatabase } from "../utils/get-database";
 import IonIcon from "@reacticons/ionicons";
 import { useRouter } from 'next/router';
+import { useEffect } from 'react';
 
 export async function getStaticProps() {
   try {
@@ -38,6 +39,20 @@ export async function getStaticProps() {
 export default function Home({ list }) {
   const router = useRouter();
 
+  useEffect(() => {
+    const savedPosition = sessionStorage.getItem('indexScrollPosition');
+    if (savedPosition) {
+      window.scrollTo(0, parseInt(savedPosition, 10));
+    }
+    const handleScroll = () => {
+      if (window.scrollY !== 0) {
+        sessionStorage.setItem('indexScrollPosition', window.scrollY);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <motion.main
       initial={{ opacity: 0 }}
@@ -65,7 +80,7 @@ export default function Home({ list }) {
       </motion.button>
 
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
         <AnimatePresence>
           {list.map((post) => (
             <div key={post.id} className="no-underline">

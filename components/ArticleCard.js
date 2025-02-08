@@ -1,34 +1,62 @@
 import { motion, useAnimation } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useContext } from 'react';
+import { currentPostContext } from '../pages/_app';
 
 export const ArticleCard = ({ post, onClick }) => {
     const controls = useAnimation();
     const [isAnimating, setIsAnimating] = useState(false);
+    const { setTitle, setPostId } = useContext(currentPostContext);
 
-    const handleClick = async (e) => {
+    const handleClick = (e) => {
         e.preventDefault();
         if (isAnimating) return;
-
+        const articleTitle = post.properties.이름.title[0]?.plain_text;
+        if (articleTitle) {
+            setTitle(articleTitle);
+            setPostId(post.id);
+        }
         setIsAnimating(true);
-
-        await controls.start({
-            scale: [1, 5, 15],
-            zIndex: 100,
-            filter: ["blur(0px)", "blur(5px)", "blur(15px)"],
-            backgroundColor: ["var(--card-bg)", "var(--background)", "var(--background)"],
-            transition: {
-                duration: 0.5,
-                times: [0, 0.4, 1],
-                ease: "easeInOut"
-            }
-        });
-
-        if (onClick) onClick();
+        setTimeout(() => {
+            if (onClick) onClick();
+        }, 700);
     };
+
+    if (isAnimating) {
+        return (
+            <motion.div
+                layoutId={`container-${post.id}`}
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    background: 'var(--background)',
+                    overflow: 'hidden',
+                    zIndex: 300,
+                }}
+                transition={{ layout: { duration: 0.5, ease: "easeInOut" } }}
+                className="flex flex-col justify-center px-4 md:px-16"
+            >
+                <motion.h2
+                    layoutId={`title-${post.id}`}
+                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                    style={{
+                        color: 'var(--foreground)',
+                        wordBreak: 'keep-all',
+                        overflowWrap: 'break-word',
+                        textWrap: 'balance'
+                    }}
+                    className="shimmering w-fit text-3xl md:text-5xl font-black mt-2"
+                >
+                    {post.properties.이름.title[0]?.plain_text}
+                </motion.h2>
+            </motion.div>
+        );
+    }
 
     return (
         <motion.article
-            animate={controls}
             layoutId={`container-${post.id}`}
             onClick={handleClick}
             style={{
@@ -95,6 +123,7 @@ export const ArticleCard = ({ post, onClick }) => {
                 </motion.div>
 
                 <motion.h2
+                    layoutId={`title-${post.id}`}
                     style={{
                         color: 'var(--foreground)',
                         wordBreak: 'keep-all',
