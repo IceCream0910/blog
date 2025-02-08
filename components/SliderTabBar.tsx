@@ -41,7 +41,7 @@ export const SliderTabBar: React.FC<any> = (() => {
                     <button
                         key={tab.id}
                         onClick={() => handleTabChange(tab.id, tab.path)}
-                        className={`relative z-20 px-6 py-2 pr-5 text-sm font-medium transition-colors duration-300 ${activeTab === tab.id ? 'text-white' : 'text-gray-400'}`}
+                        className={`relative z-20 px-6 py-2 ${tab.id === "document" ? 'pr-6' : 'pr-5'} text-sm font-medium transition-colors duration-300 ${activeTab === tab.id ? 'text-white' : 'text-gray-400'}`}
                     >
                         {tab.label}
                     </button>
@@ -55,7 +55,7 @@ export const SliderTabBar: React.FC<any> = (() => {
                         x: activeTab === 'diary'
                             ? '0%'
                             : activeTab === 'document'
-                                ? '95%'
+                                ? '90%'
                                 : '188%',
                     }}
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}

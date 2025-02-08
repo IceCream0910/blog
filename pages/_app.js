@@ -21,6 +21,12 @@ export default function App({ Component, pageProps }) {
   const [postId, setPostId] = useState('');
 
   useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+  }, []);
+
+  useEffect(() => {
     const handleStart = () => setLoading(true);
     const handleComplete = () => {
       setLoading(false);
