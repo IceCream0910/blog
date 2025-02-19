@@ -1,27 +1,46 @@
-export async function getDatabase(databaseId: string, body: any = {}) {
+export async function getDatabase(databaseId, body = {}) {
     if (!databaseId) {
         throw new Error('Database ID is required');
     }
 
+    let results = [];
+    let cursor = null;
+    let hasMore = true;
+
+    const pageSize = 100;
+
     try {
-        const options = {
-            method: 'POST',
-            headers: {
-                'Notion-Version': '2022-06-28',
-                Authorization: `Bearer ${process.env.NOTION_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(body),
-        };
+        while (hasMore) {
+            const requestBody = {
+                ...body,
+                page_size: pageSize,
+                ...(cursor && { start_cursor: cursor }),
+            };
 
-        const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, options);
-        const data = await response.json();
+            const options = {
+                method: 'POST',
+                headers: {
+                    'Notion-Version': '2022-06-28',
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${process.env.NOTION_API_KEY}`,
+                },
+                body: JSON.stringify(requestBody),
+            };
 
-        if (!response.ok) {
-            throw new Error(data.message || 'Failed to fetch data');
+            const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, options);
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to fetch data');
+            }
+
+            results = [...results, ...data.results];
+
+            hasMore = data.has_more;
+            cursor = data.next_cursor;
         }
 
-        return data;
+        return { results };
     } catch (error) {
         throw error;
     }
