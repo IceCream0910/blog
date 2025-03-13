@@ -1,8 +1,12 @@
+import IonIcon from '@reacticons/ionicons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
 
 interface Comment {
     id: string;
+    created_by: {
+        id: string;
+    };
     rich_text: Array<{
         plain_text: string;
     }>;
@@ -25,6 +29,7 @@ export default function Comments({ pageId }: CommentsProps) {
             const res = await fetch(`/api/comments/${pageId}`);
             const data = await res.json();
             setComments(data.results);
+            console.log(data.results);
         } catch (error) {
             console.error('Failed to fetch comments:', error);
         } finally {
@@ -122,7 +127,15 @@ export default function Comments({ pageId }: CommentsProps) {
                                 exit={{ opacity: 0, y: -20 }}
                                 className="p-4 pt-1 rounded-2xl bg-gray-50 dark:bg-gray-800"
                             >
-                                <p className="text-gray-800 dark:text-gray-200 m-0 mt-3">
+
+                                {comment.created_by.id == "b134fa0d-0a42-457c-be65-3fcc91bd5c0e" && (
+                                    <div className="mt-3">
+                                        <span className="text-gray-500 dark:text-gray-400">
+                                            태인 <IonIcon name="checkmark-circle" className="text-blue-500" style={{ position: 'relative', top: '2px' }} />
+                                        </span>
+                                    </div>
+                                )}
+                                <p className="text-gray-800 dark:text-gray-200 m-0 mt-2">
                                     {comment.rich_text[0]?.plain_text}
                                 </p>
                                 <span className="text-sm text-gray-500">
