@@ -159,6 +159,11 @@ export default function Page({ pageId, recordMap }) {
             });
         }
 
+
+        console.log('send message to parent')
+        let message = { height: document.body.scrollHeight };
+        window.top.postMessage(message, "*");
+
         return () => {
             mediaQuery.removeEventListener('change', handleColorSchemeChange);
         };
@@ -183,6 +188,7 @@ export default function Page({ pageId, recordMap }) {
             <style jsx global>{`
             html, body {
                 background: none;
+                overflow: hidden !important;
             }
 
     header, aside {
