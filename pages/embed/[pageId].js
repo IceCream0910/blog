@@ -159,13 +159,17 @@ export default function Page({ pageId, recordMap }) {
             });
         }
 
+        let initialMessage = { height: document.body.scrollHeight };
+        window.top.postMessage(initialMessage, "*");
 
-        console.log('send message to parent')
-        let message = { height: document.body.scrollHeight };
-        window.top.postMessage(message, "*");
+        const intervalId = setInterval(() => {
+            let message = { height: document.body.scrollHeight };
+            window.top.postMessage(message, "*");
+        }, 1000);
 
         return () => {
             mediaQuery.removeEventListener('change', handleColorSchemeChange);
+            clearInterval(intervalId);
         };
     }, []);
 
