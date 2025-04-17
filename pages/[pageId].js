@@ -247,7 +247,6 @@ export default function Page({ pageId, recordMap }) {
                             Code,
                             Collection,
                             Equation,
-                            Pdf,
                             Modal
                         }}
                         fullPage={false}
