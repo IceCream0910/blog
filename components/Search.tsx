@@ -1,3 +1,4 @@
+import IonIcon from '@reacticons/ionicons';
 import Link from 'next/link';
 import React from 'react';
 
@@ -156,13 +157,14 @@ export const Search: React.FC<any> = ({ onClose }) => {
 
     return (
         <div className="fixed w-full h-screen inset-0 bg-black/70 flex items-center justify-center">
-            <div ref={searchBoxRef} className="w-[600px] max-w-[90%] bg-[#1E1E1E] rounded-xl shadow-2xl overflow-hidden">
+            <div ref={searchBoxRef} className="w-[600px] max-w-[90%] bg-[#1E1E1E] rounded-3xl shadow-2xl overflow-hidden">
                 <div className="relative">
+                    <IonIcon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 text-xl" />
                     <input
                         type="text"
                         value={query}
                         onChange={e => setQuery(e.target.value)}
-                        className="w-full bg-transparent text-white text-lg p-4 focus:outline-none pr-24"
+                        className="w-full bg-transparent text-gray-400 text-lg p-4 px-12 focus:outline-none"
                         placeholder="검색"
                         autoFocus
                     />
@@ -182,7 +184,7 @@ export const Search: React.FC<any> = ({ onClose }) => {
                         )}
                     </div>
                 </div>
-                <div ref={resultsContainerRef} className="max-h-[400px] overflow-y-auto">
+                <div ref={resultsContainerRef} className={`max-h-[400px] overflow-y-auto p-2 ${results.length === 0 ? 'hidden' : ''}`}>
                     {results.map((result, index) => (
                         result.highlight.title ? (
                             <Link
@@ -190,7 +192,7 @@ export const Search: React.FC<any> = ({ onClose }) => {
                                 ref={index === selectedIndex ? selectedItemRef : null}
                                 onClick={onClose}
                                 href={`/${result.id}`}
-                                className={`block p-3 hover:bg-gray-700/20 no-underline ${index === selectedIndex ? 'bg-gray-700/50' : ''
+                                className={`block p-3 hover:bg-gray-700/20 no-underline rounded-2xl ${index === selectedIndex ? 'bg-gray-700/50' : ''
                                     }`}
                             >
                                 <div className="flex items-center gap-3">
@@ -211,7 +213,7 @@ export const Search: React.FC<any> = ({ onClose }) => {
                                     ref={index === selectedIndex ? selectedItemRef : null}
                                     href={`/${result.id}`}
                                     onClick={onClose}
-                                    className={`block p-3 hover:bg-gray-700/20 no-underline ${index === selectedIndex ? 'bg-gray-700/50' : ''
+                                    className={`block p-3 hover:bg-gray-700/20 no-underline rounded-2xl ${index === selectedIndex ? 'bg-gray-700/50' : ''
                                         }`}
                                 >
                                     <div className="flex items-center gap-3">
@@ -233,7 +235,7 @@ export const Search: React.FC<any> = ({ onClose }) => {
 
                     ))}
                 </div>
-                <div className="border-t border-gray-700 p-3 hidden md:block">
+                <div className="p-4 hidden md:block">
                     <div className="flex items-center justify-end gap-4 text-xs text-gray-400">
                         <span className="flex items-center gap-1">
                             <kbd className="px-2 py-1 bg-gray-700 rounded text-xs mr-1">/</kbd>

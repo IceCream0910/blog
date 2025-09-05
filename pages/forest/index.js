@@ -1,29 +1,24 @@
 "use client";
 import Link from "next/link";
 import { getDatabase } from "../../utils/get-database";
-import { motion } from "framer-motion";
+import { motion } from 'framer-motion';
 import IonIcon from "@reacticons/ionicons";
-import { useRouter } from "next/navigation";
-import { useState, useRef, useContext, useEffect } from "react";
-import { currentPostContext } from "../_app";
-import gsap from "gsap";
+import { useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
 
 export async function getStaticProps() {
   try {
+
     const data = await getDatabase("ff85c8c8bc3345babf2f7970d86506d4", {
       sorts: [
         {
-          property: "~h%3F%5E",
-          direction: "descending"
+          property: "title",
+          direction: "ascending"
         }
-      ],
-      filter: {
-        property: "Ra%5D%3B",
-        select: {
-          equals: "일지"
-        }
-      }
+      ]
     });
+
+    console.log(data)
 
     return {
       props: {
@@ -32,7 +27,7 @@ export async function getStaticProps() {
       revalidate: 10
     };
   } catch (error) {
-    console.error("Failed to fetch database:", error);
+    console.error('Failed to fetch database:', error);
     return {
       props: {
         list: [],
@@ -43,259 +38,211 @@ export async function getStaticProps() {
 }
 
 export default function Forest({ list }) {
-  const router = useRouter();
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [dragIndex, setDragIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const { setTitle, setPostId, title, postId } = useContext(currentPostContext);
-  const [showGuide, setShowGuide] = useState(true);
+  const [sortOption, setSortOption] = useState("date");
+  const [filterOption, setFilterOption] = useState("all"); // "all", "일지", "문서"
 
-  const [maxCard, setMaxCard] = useState(5);
-  useEffect(() => {
-    setTitle("");
-    setPostId("");
+  const sortedList = useMemo(() => {
+    let filtered = list;
 
-    const savedPosition = sessionStorage.getItem('journalScrollPosition');
-    if (savedPosition) {
-      setCurrentIndex(parseInt(savedPosition));
+    if (filterOption !== "all") {
+      filtered = list.filter(post =>
+        post.properties["forest_분류"]?.select?.name === filterOption
+      );
     }
 
-    const updateMaxCard = () => {
-      const height = window.innerHeight;
-      let cardCount = Math.floor(height / 200);
-      cardCount = Math.max(3, Math.min(cardCount, 10));
-      setMaxCard(cardCount);
-    };
-    updateMaxCard();
-    window.addEventListener("resize", updateMaxCard);
-    return () => window.removeEventListener("resize", updateMaxCard);
-  }, []);
-
-  const scrollObj = useRef({ value: currentIndex });
-  const wheelDelta = useRef(0);
-  const touchStartY = useRef(0);
-  const touchStartTime = useRef(0);
-  const dragStartIndex = useRef(0);
-  const dragObj = useRef({ value: 0 });
-
-  const GAP = 50;
-  const SENSITIVITY = 30; // 픽셀 당 인덱스 변화량
-  const MOMENTUM_MULTIPLIER = 50;
-
-  useEffect(() => {
-    setDragIndex(currentIndex);
-    scrollObj.current.value = currentIndex;
-  }, [currentIndex]);
-
-  const handleClick = (id, articleTitle) => {
-    if (isLoading) return;
-    if (articleTitle) {
-      setTitle(articleTitle);
-      setPostId(id);
+    if (sortOption === "title") {
+      return [...filtered].sort((a, b) =>
+        a.properties.이름.title[0]?.plain_text.localeCompare(b.properties.이름.title[0]?.plain_text)
+      );
+    } else {
+      return [...filtered].sort((a, b) =>
+        new Date(b.last_edited_time) - new Date(a.last_edited_time)
+      );
     }
-    sessionStorage.setItem('journalScrollPosition', currentIndex);
-    setIsLoading(true);
-    setTimeout(() => {
-      router.push(`/${id}`);
-    }, 700);
+  }, [list, sortOption, filterOption]);
+
+  const handleFilterToggle = (type) => {
+    if (filterOption === type) {
+      setFilterOption("all");
+    } else {
+      setFilterOption(type);
+    }
   };
 
-  const tweenToIndex = (newIndex) => {
-    gsap.to(scrollObj.current, {
-      value: newIndex,
-      duration: 0.3,
-      ease: "power2.out",
-      onUpdate: () => {
-        setCurrentIndex(Math.round(scrollObj.current.value));
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.1
       }
-    });
-  };
-
-  const handleWheel = (e) => {
-    const WHEEL_THRESHOLD = 30;
-    wheelDelta.current += e.deltaY;
-    if (Math.abs(wheelDelta.current) > WHEEL_THRESHOLD) {
-      const steps = Math.floor(Math.abs(wheelDelta.current) / WHEEL_THRESHOLD);
-      const maxIndex = Math.max(list.length - maxCard - 1, 0);
-      let newIndex;
-      if (wheelDelta.current > 0) {
-        newIndex = Math.min(currentIndex + steps, maxIndex);
-      } else {
-        newIndex = Math.max(currentIndex - steps, 0);
-      }
-      wheelDelta.current = 0;
-      tweenToIndex(newIndex);
     }
-    setShowGuide(false);
   };
 
-  const handleTouchStart = (e) => {
-    touchStartY.current = e.touches[0].clientY;
-    touchStartTime.current = Date.now();
-    dragStartIndex.current = dragIndex;
+  const itemVariants = {
+    hidden: {
+      opacity: 0,
+      y: 30,
+      scale: 0.9
+    },
+    show: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        damping: 25,
+        stiffness: 200
+      }
+    }
   };
-
-  const handleTouchMove = (e) => {
-    const diff = e.touches[0].clientY - touchStartY.current; // 이동 방향 반전
-    let newDragIndex = dragStartIndex.current + diff / SENSITIVITY;
-    const maxIndex = Math.max(list.length - maxCard - 1, 0);
-    newDragIndex = Math.max(0, Math.min(newDragIndex, maxIndex));
-    setDragIndex(newDragIndex);
-    setCurrentIndex(newDragIndex);
-    setShowGuide(false);
-  };
-
-  const handleTouchEnd = (e) => {
-    const touchEndY = e.changedTouches[0].clientY;
-    const elapsed = Date.now() - touchStartTime.current || 1;
-    const diff = touchEndY - touchStartY.current;
-    const velocity = diff / elapsed;
-    const momentumOffset = (velocity * MOMENTUM_MULTIPLIER) / SENSITIVITY;
-    let finalIndex = Math.round(dragIndex + momentumOffset);
-    const maxIndex = Math.max(list.length - maxCard - 1, 0);
-    finalIndex = Math.max(0, Math.min(finalIndex, maxIndex));
-
-    dragObj.current.value = finalIndex;
-    gsap.to(dragObj.current, {
-      value: finalIndex,
-      duration: 0.3,
-      ease: "power2.out",
-      onUpdate: () => {
-        setDragIndex(dragObj.current.value);
-        setCurrentIndex(dragObj.current.value);
-      },
-      onComplete: () => {
-        setCurrentIndex(finalIndex);
-      },
-    });
-  };
-
-  const baseIndex = Math.floor(dragIndex);
-  const fraction = dragIndex - baseIndex;
-  const visibleCards = list
-    .slice(baseIndex, baseIndex + maxCard + 1)
-    .reverse();
-
-  if (isLoading) {
-    return (
-      <motion.div
-        layoutId={`container-${postId}`}
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100vw",
-          height: "100vh",
-          background: "var(--background)",
-          overflow: "hidden",
-          zIndex: 300,
-        }}
-        transition={{ layout: { duration: 0.5, ease: "easeInOut" } }}
-        className="flex flex-col justify-center px-4 md:px-16"
-      >
-        <motion.h2
-          layoutId={`title-${postId}`}
-          transition={{ duration: 0.5, ease: "easeInOut" }}
-          style={{
-            color: "var(--foreground)",
-            wordBreak: "keep-all",
-            overflowWrap: "break-word",
-            textWrap: "balance"
-          }}
-          className="shimmering w-fit text-3xl md:text-5xl font-black mt-2"
-        >
-          {title}
-        </motion.h2>
-      </motion.div>
-    );
-  }
 
   return (
-    <main className="container mx-auto px-4 py-8">
+    <main className="mx-auto px-4 py-8 pb-20">
       <motion.h1
         layoutId="page-hero"
-        className="text-3xl md:text-5xl text-gray-400 font-bold mt-16 md:text-4xl text-center text-balance"
+        className="text-3xl md:text-5xl text-gray-400 font-bold mt-16 md:text-4xl text-center text-balance mb-20"
         style={{ wordBreak: "keep-all", overflowWrap: "break-word" }}
       >
         저의 <span style={{ color: "var(--foreground)" }}>디지털 숲🌳</span>에<br />오신 것을 환영합니다
         <br />
       </motion.h1>
 
-
-      <div
-        className="fixed bottom-0 left-0 right-0 h-full flex flex-col items-center justify-end p-4 box-border z-1"
-        style={{ touchAction: "none" }}
-        onWheel={handleWheel}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        {visibleCards.map((post, i) => {
-          const bottomOffset = (maxCard - i) * GAP - fraction * GAP;
-          return (
-            <motion.div
-              layoutId={`container-${post.id}`}
-              key={post.id}
-              initial={{ bottom: (maxCard - i) * GAP }}
-              animate={{ bottom: bottomOffset }}
-              transition={{ duration: 0.1 }}
-              className="w-[92%] md:w-[var(--max-width)]"
-              style={{
-                zIndex: (maxCard - i) / 10,
-                position: "absolute",
-                height: "200px",
-              }}
-            >
-              <article
-                onClick={() =>
-                  handleClick(
-                    post.id,
-                    post.properties.이름.title[0]?.plain_text
-                  )
-                }
-                className="rounded-t-3xl overflow-hidden transition-all duration-300 ease-out cursor-pointer flex flex-col border-t-2 border-s-2 border-t-gray-200 dark:border-t-gray-700 dark:border-s-gray-600"
-                style={{
-                  background: "var(--card-bg)",
-                  transform: `scale(${1 - (maxCard - i) * 0.05})`,
-                  height: "200px",
-                  opacity: 1 - (maxCard - i) * 0.15
-                }}
-              >
-                <div className="flex-1 p-3 flex flex-col justify-start relative z-10">
-                  <motion.h2
-                    style={{
-                      color: "var(--foreground)",
-                      wordBreak: "keep-all",
-                      overflowWrap: "break-word",
-                    }}
-                    className="text-lg m-0 h-full"
-                    layoutId={`title-${post.id}`}
-                  >
-                    {post.properties.이름.title[0]?.plain_text}
-                  </motion.h2>
-                </div>
-              </article>
-            </motion.div>
-          );
-        })}
-
-        {showGuide && (
-          <motion.div
-            className="fixed bottom-5 left-0 right-0 z-[999] flex flex-col gap-2 items-center justify-center opacity-50 text-sm"
-            animate={{
-              y: [0, -10, 0],
-            }}
-            transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
+      <div className="fixed top-8 right-8 flex justify-center z-99">
+        <div className="flex rounded-3xl overflow-hidden w-fit backdrop-filter backdrop-blur border border-gray-300 dark:border-gray-800 backdrop-blur shadow-lg">
+          <button
+            onClick={() => handleFilterToggle("일지")}
+            className={`flex items-center p-4 text-sm transition-colors rounded-3xl ${filterOption === "일지"
+              ? "bg-[var(--primary)] text-white"
+              : "hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
           >
-            <IonIcon name="chevron-expand" className="text-2xl" />
-            위 아래로 스크롤하여 탐색
-          </motion.div>
-        )}
+            <IonIcon name="book-outline" />
+          </button>
+
+          <button
+            onClick={() => handleFilterToggle("문서")}
+            className={`flex items-center p-4 text-sm transition-colors rounded-3xl ${filterOption === "문서"
+              ? "bg-[var(--primary)] text-white"
+              : "hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
+          >
+            <IonIcon name="document-outline" />
+          </button>
+        </div>
       </div>
+
+      <motion.div
+        key={filterOption}
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-2 lg:grid-cols-3 gap-5 mt-6"
+      >
+        {sortedList.map((post, index) => (
+          <motion.div
+            key={post.id}
+            variants={itemVariants}
+            className="relative"
+          >
+            <Link href={`/${post.id}`} className="no-underline">
+              {post.properties["forest_분류"]?.select?.name === "일지" ? (
+                <Folder title={post.properties.이름.title[0]?.plain_text} desc={"일지"} />
+              ) : (
+                <article className="bg-gray-50 dark:bg-[--card-bg] rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-200 h-full flex flex-col">
+                  <div className="flex-1">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white m-0 mb-4 leading-tight">
+                      {post.properties.이름.title[0]?.plain_text}
+                    </h2>
+
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mb-2">
+                        {post.properties.forest_articles.rich_text.length != 0 && JSON.parse(post.properties.forest_articles.rich_text.map(item => item.text.content).join('').replaceAll("”", "\"").replaceAll("“", "\"")).map((text, i) => (
+                          <span key={i} className="text-sm text-gray-500 dark:text-gray-300">
+                            <IonIcon name="reader-outline" className="relative top-[2px] mr-1" />
+                            {text}<br /></span>
+                        ))}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
+                    <span className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                      {new Date(post.last_edited_time).toLocaleDateString('ko-KR').toUpperCase()}
+                    </span>
+                    <div className="flex space-x-1 opacity-60">
+                      <IonIcon name="expand-outline" className="text-gray-400" />
+                    </div>
+                  </div>
+                </article>
+              )}
+            </Link>
+          </motion.div>
+        ))}
+      </motion.div>
     </main>
   );
+}
+
+function Folder({ title, desc }) {
+  const colorPalette = [
+    { from: '#d65858', to: '#f54e4e' }, // Red
+    { from: '#8534bf', to: '#8b5cf6' }, // Purple
+    { from: '#ffc870', to: '#ffbf00' }, // Orange
+    { from: '#2ee8ab', to: '#09b881' }, // Emerald
+    { from: '#3b82f6', to: '#2563eb' }, // Blue
+    { from: '#f29a3d', to: '#faa748' }, // Amber
+    { from: '#ffa6d2', to: '#f06eae' }, // Pink
+  ];
+
+  const getColorFromTitle = (title) => {
+    let hash = 0;
+    for (let i = 0; i < title.length; i++) {
+      hash = title.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colorPalette[Math.abs(hash) % colorPalette.length];
+  };
+
+  const getTextColor = (colorObj) => {
+    const hex = colorObj.from.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 128 ? '#000000' : '#ffffff';
+  };
+
+  const selectedColor = getColorFromTitle(title);
+  const textColor = getTextColor(selectedColor);
+  console.log(selectedColor, textColor);
+  const gradientId = `gradient-${title.replace(/\s+/g, '-')}`;
+
+  return (
+    <div className="relative w-full h-full hover:scale-[1.02] transition-all duration-300 ">
+      <svg
+        viewBox="0 0 200 140"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full h-full"
+      >
+        <defs>
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={selectedColor.from} />
+            <stop offset="100%" stopColor={selectedColor.to} />
+          </linearGradient>
+        </defs>
+        <path
+          d="M0 40 Q0 10 30 10 H80 Q100 10 110 25 Q115 35 130 35 H180 Q200 35 200 55 V120 Q200 140 180 140 H20 Q0 140 0 120 Z"
+          fill={`url(#${gradientId})`}
+        />
+      </svg>
+
+      <div className="absolute bottom-4 left-4" style={{ color: textColor }}>
+        <p className="font-semibold text-lg m-0">{title}</p>
+        <p className="text-sm opacity-60 mt-0 mb-2">{desc}</p>
+      </div>
+
+      <div className="absolute bottom-4 right-4 text-xl" style={{ color: textColor }}>⋯</div>
+    </div>
+  )
 }
