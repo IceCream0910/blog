@@ -1,5 +1,5 @@
 import { getDatabase } from '../utils/get-database';
-import { GetStaticProps } from 'next';
+import { GetServerSideProps } from 'next';
 
 const Sitemap = () => null;
 
@@ -23,7 +23,7 @@ const generateSiteMap = (posts: any[]) => {
     </urlset>`;
 };
 
-export const getServerSideProps = async ({ res }) => {
+export const getServerSideProps: GetServerSideProps = async ({ res }) => {
     try {
         const posts = await getDatabase("1a346171ed574b0a9c1c3f5a29b39919", {
             sorts: [
@@ -35,8 +35,7 @@ export const getServerSideProps = async ({ res }) => {
         });
 
         const sitemap = generateSiteMap(posts.results);
-
-        res.setHeader('Content-Type', 'text/xml');
+        res.setHeader('Content-Type', 'application/xml');
         res.write(sitemap);
         res.end();
 
@@ -46,8 +45,7 @@ export const getServerSideProps = async ({ res }) => {
     } catch (error) {
         console.error('Failed to generate sitemap:', error);
         return {
-            props: {},
-            revalidate: 10
+            props: {}
         };
     }
 };
