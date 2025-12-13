@@ -24,6 +24,8 @@
     "**/*.tsx"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "**/tsup.config.ts",
+    "packages/**/tsup.config.ts"
   ]
 }
