@@ -3,8 +3,8 @@ import Link from "next/link";
 import { getDatabase } from "../../utils/get-database";
 import { motion } from 'framer-motion';
 import IonIcon from "@reacticons/ionicons";
-import { useRouter } from 'next/navigation';
-import { useState, useMemo } from 'react';
+import { useRouter } from 'next/router';
+import { useState, useMemo, useEffect } from 'react';
 
 export async function getStaticProps() {
   try {
@@ -38,8 +38,42 @@ export async function getStaticProps() {
 }
 
 export default function Forest({ list }) {
+  const router = useRouter();
   const [sortOption, setSortOption] = useState("date");
   const [filterOption, setFilterOption] = useState("all"); // "all", "일지", "문서"
+
+  useEffect(() => {
+    const savedPosition = sessionStorage.getItem('forestScrollPosition');
+    const savedFilter = sessionStorage.getItem('forestFilter');
+    const savedSort = sessionStorage.getItem('forestSort');
+    
+    if (savedFilter) {
+      setFilterOption(savedFilter);
+    }
+    if (savedSort) {
+      setSortOption(savedSort);
+    }
+    if (savedPosition) {
+      window.scrollTo(0, parseInt(savedPosition, 10));
+    }
+
+    const handleScroll = () => {
+      if (window.scrollY !== 0) {
+        sessionStorage.setItem('forestScrollPosition', window.scrollY);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem('forestFilter', filterOption);
+  }, [filterOption]);
+
+  useEffect(() => {
+    sessionStorage.setItem('forestSort', sortOption);
+  }, [sortOption]);
 
   const sortedList = useMemo(() => {
     let filtered = list;
@@ -55,9 +89,15 @@ export default function Forest({ list }) {
         a.properties.이름.title[0]?.plain_text.localeCompare(b.properties.이름.title[0]?.plain_text)
       );
     } else {
-      return [...filtered].sort((a, b) =>
-        new Date(b.last_edited_time) - new Date(a.last_edited_time)
-      );
+      return [...filtered].sort((a, b) => {
+        const aType = a.properties["forest_분류"]?.select?.name;
+        const bType = b.properties["forest_분류"]?.select?.name;
+        
+        const aTime = aType === "일지" ? a.created_time : a.last_edited_time;
+        const bTime = bType === "일지" ? b.created_time : b.last_edited_time;
+        
+        return new Date(bTime) - new Date(aTime);
+      });
     }
   }, [list, sortOption, filterOption]);
 
@@ -66,17 +106,6 @@ export default function Forest({ list }) {
       setFilterOption("all");
     } else {
       setFilterOption(type);
-    }
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.1
-      }
     }
   };
 
@@ -133,17 +162,17 @@ export default function Forest({ list }) {
         </div>
       </div>
 
-      <motion.div
+      <div
         key={filterOption}
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
         className="grid grid-cols-2 lg:grid-cols-3 gap-5 mt-6"
       >
         {sortedList.map((post, index) => (
           <motion.div
             key={post.id}
             variants={itemVariants}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: "-50px" }}
             className="relative"
           >
             <Link href={`/${post.id}`} className="no-underline">
@@ -180,7 +209,7 @@ export default function Forest({ list }) {
             </Link>
           </motion.div>
         ))}
-      </motion.div>
+      </div>
     </main>
   );
 }
