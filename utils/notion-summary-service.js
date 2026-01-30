@@ -1,5 +1,8 @@
+import { Client } from '@notionhq/client';
 import crypto from 'crypto';
 import { generateSummary } from './ai-service';
+
+const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
 function createHash(text) {
     return crypto.createHash('md5').update(text).digest('hex');
@@ -9,20 +12,11 @@ export async function manageSummary(pageId, contentText) {
     if (!contentText) return null;
 
     try {
-        const { Client } = await import('@notionhq/client');
-        const notion = new Client({ auth: process.env.NOTION_API_KEY });
-
         const currentHash = createHash(contentText);
 
-        // 1. Fetch current property
         const response = await notion.pages.retrieve({ page_id: pageId });
         const properties = response.properties;
 
-        // Check if 'ai_summary' property exists, if not, handle gracefully (or maybe we can't do anything)
-        // Assuming the user added 'ai_summary' as requested.
-        // Notion API returns properties with their type. Text property is type 'rich_text'.
-
-        // Helper to extract text from rich_text
         const getRichTextValue = (prop) => {
             if (!prop || prop.type !== 'rich_text' || !prop.rich_text || prop.rich_text.length === 0) {
                 return "";
@@ -30,9 +24,6 @@ export async function manageSummary(pageId, contentText) {
             return prop.rich_text.map(t => t.plain_text).join("");
         };
 
-        // Look for property named 'ai_summary' (case insensitive check might be good, but strict for now)
-        // Finding the key for 'ai_summary' might be tricky if case differs. 
-        // We'll iterate keys to find a match.
         const summaryPropKey = Object.keys(properties).find(
             key => key.toLowerCase().replace(/_/g, '') === 'aisummary' || key === 'ai_summary'
         );
@@ -42,7 +33,6 @@ export async function manageSummary(pageId, contentText) {
             cachedValue = getRichTextValue(properties[summaryPropKey]);
         }
 
-        // 2. Parsed cached value: "[hash] summary"
         const match = cachedValue.match(/^\[([a-f0-9]{32})\]\s([\s\S]*)$/);
 
         if (match) {
@@ -55,13 +45,11 @@ export async function manageSummary(pageId, contentText) {
             }
         }
 
-        // 3. Cache Miss - Generate new summary
         console.log(`[ManageSummary] Cache Miss for ${pageId}. Generating...`);
         const newSummary = await generateSummary(contentText);
 
         if (!newSummary) return null;
 
-        // 4. Write back to Notion
         if (summaryPropKey) {
             const newValue = `[${currentHash}] ${newSummary}`;
 

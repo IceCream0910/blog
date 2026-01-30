@@ -1,11 +1,13 @@
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
+
 export async function generateSummary(text) {
     if (!text) return "";
 
     try {
-        const OpenAI = (await import('openai')).default;
-        const openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
-        });
 
         const response = await openai.chat.completions.create({
             model: "gpt-4o-mini",
