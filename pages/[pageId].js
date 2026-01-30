@@ -1,19 +1,24 @@
-import dynamic from 'next/dynamic'
 import { NotionAPI } from 'notion-client'
 import { NotionRenderer } from '../packages/notionx'
 import 'prismjs/themes/prism-tomorrow.css'
 import 'katex/dist/katex.min.css'
-import { useEffect, useState } from 'react'
-import { calculateReadingTime } from '../utils/readingTime'
-import { Podcast } from '../components/Podcast'
+import { useEffect } from 'react'
 import Comments from '../components/Comments'
 import { Backlinks } from '../components/Backlinks'
 import { PageHead } from '../components/PageHead'
 import { motion } from 'framer-motion';
-import { useRouter } from 'next/router';
-import { Code, Collection, Equation, Pdf, Modal } from '../utils/notion-components'
+import { Code, Collection, Equation, Modal } from '../utils/notion-components'
 import { getDatabase } from "../utils/get-database"
-import IonIcon from '@reacticons/ionicons'
+import { manageSummary } from '../utils/notion-summary-service'
+import { extractTextFromRecordMap } from '../utils/extract-text'
+
+import { usePostMetadata } from '../hooks/usePostMetadata'
+import { useReadingTime } from '../hooks/useReadingTime'
+import { useDarkMode } from '../hooks/useDarkMode'
+
+import { PostHeader } from '../components/Post/PostHeader'
+import { PostActions } from '../components/Post/PostActions'
+import AISummary from '../components/Post/AISummary'
 
 export async function getStaticPaths() {
     try {
@@ -72,10 +77,22 @@ export async function getStaticProps({ params }) {
             }
         }
 
+
+        // Check if it's a post (has category)
+        const block = recordMap.block[pageId].value;
+        const isPost = block.properties && block.properties["fVc<"]; // Category property check
+
+        let summary = null;
+        if (isPost) {
+            const text = extractTextFromRecordMap(recordMap);
+            summary = await manageSummary(pageId, text);
+        }
+
         return {
             props: {
                 pageId,
-                recordMap
+                recordMap,
+                summary
             },
             revalidate: 10
         }
@@ -87,72 +104,14 @@ export async function getStaticProps({ params }) {
     }
 }
 
-export default function Page({ pageId, recordMap }) {
+export default function Page({ pageId, recordMap, summary }) {
     if (!recordMap || !recordMap.block || Object.keys(recordMap.block).length === 0) {
         return <div>Invalid page data</div>;
     }
 
-    const properties = recordMap.block[pageId].value.properties;
-    var title, category, tags;
-
-    if (properties["fVc<"]) {
-        title = properties.title[0][0];
-        category = properties["fVc<"][0][0];
-        tags = properties["f|n]"].toString().split(',')
-    } else {
-        title = properties.title[0][0];
-        category = ""
-        tags = []
-    }
-
-    const [content, setContent] = useState('');
-    const [readTime, setReadTime] = useState(0);
-    const [darkmode, setDarkmode] = useState(false);
-
-    useEffect(() => {
-        const notionPage = document.querySelector(".notion-page");
-        const codeBlocks = notionPage?.querySelectorAll('.notion-code');
-        let body = notionPage?.innerText || '';
-
-        // Remove text content from code blocks
-        codeBlocks?.forEach(codeBlock => {
-            body = body.replace(codeBlock.innerText, '');
-        });
-
-        const text = body
-            // 이미지 제거
-            .replaceAll(/!\[([^\]]+?)\]\([^)]+?\)/g, '')
-            // 링크는 텍스트만 남기고 제거
-            .replaceAll(/\[([^\]]+?)\]\([^)]+?\)/g, '$1')
-            // 코드 블록 제거
-            .replaceAll(/```[^\n]+?\n([\s\S]+?)\n```/g, '')
-            // 불렛 제거
-            .replaceAll(/- ([^\n]+?)\n/g, '$1\n')
-            // 특수문자 제거
-            .replaceAll(/([*_`~#>])/g, '')
-            // '출처 : <링크>' 형태 제거
-            .replaceAll(/출처\s*:\s*https?:\/\/[^\s]+/g, '')
-            // 좌우 공백 제거
-            .replaceAll("<", " ")
-            .trim();
-        setContent(text);
-
-        const time = calculateReadingTime(text);
-        setReadTime(time);
-
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        setDarkmode(mediaQuery.matches);
-
-        const handleColorSchemeChange = (e) => {
-            setDarkmode(e.matches);
-        };
-
-        mediaQuery.addEventListener('change', handleColorSchemeChange);
-
-        return () => {
-            mediaQuery.removeEventListener('change', handleColorSchemeChange);
-        };
-    }, []);
+    const { title, category, tags, date } = usePostMetadata(pageId, recordMap);
+    const readTime = useReadingTime(recordMap);
+    const darkMode = useDarkMode();
 
     useEffect(() => {
         return () => {
@@ -170,12 +129,18 @@ export default function Page({ pageId, recordMap }) {
 
     const containerVariants = {
         hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.15,
+                delayChildren: 0.1
+            }
+        }
     };
 
     const itemVariants = {
         hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0 }
+        visible: { opacity: 1, y: 0, transition: { duration: 0.25 } }
     };
 
     return (
@@ -192,52 +157,16 @@ export default function Page({ pageId, recordMap }) {
             />
 
             <div className='page-container'>
-                <motion.div
-                    className='pt-6 pb-0 sticky z-10'
-                    variants={containerVariants}
-                >
-                    <motion.div
-                        variants={itemVariants}
-                        className="flex items-center gap-2 mb-3 flex-wrap"
-                    >
-                        {category &&
-                            <span
-                                style={{
-                                    background: category.includes('스터디') ? 'var(--category-bg-1)' : category.includes('프로젝트') ? 'var(--category-bg-2)' : 'var(--category-bg-3)',
-                                    color: category.includes('스터디') ? 'var(--category-text-1)' : category.includes('프로젝트') ? 'var(--category-text-2)' : 'var(--category-text-3)',
-                                }}
-                                className="px-2 py-1 text-sm rounded-full"
-                            >
-                                <span>{category}</span>
-                            </span>
-                        }
-                        {tags && tags.map((tag) => (
-                            <span
-                                key={tag}
-                                style={{
-                                    background: 'var(--tag-bg)',
-                                    color: 'var(--tag-text)'
-                                }}
-                                className="px-2 py-1 text-sm rounded-full"
-                            >#{tag}</span>
-                        ))}
-                    </motion.div>
-                    <motion.h2
-                        layoutId={`title-${pageId}`}
-                        variants={itemVariants}
-                        className='text-3xl font-bold m-0'
-                    >
-                        {title}
-                    </motion.h2>
+                <PostHeader
+                    title={title}
+                    category={category}
+                    tags={tags}
+                    date={date}
+                    readTime={readTime}
+                />
 
-                    <motion.span
-                        variants={itemVariants}
-                        style={{ color: 'var(--date-text)' }}
-                        className="text-sm m-0"
-                    >
-                        {properties["cwqu"] && properties["cwqu"][0][1][0][1].start_date + " | "}<span className='tossface'>🕒</span> 읽는 데 {readTime}분 예상
-                    </motion.span>
-                    <motion.div variants={itemVariants} className='m-8' />
+                <motion.div variants={itemVariants}>
+                    <AISummary summary={summary} />
                 </motion.div>
 
                 <motion.div variants={itemVariants}>
@@ -250,7 +179,7 @@ export default function Page({ pageId, recordMap }) {
                             Modal
                         }}
                         fullPage={false}
-                        darkMode={darkmode}
+                        darkMode={darkMode}
                         showTableOfContents={true}
                         previewImages={!!recordMap.preview_images}
                     />
@@ -258,33 +187,7 @@ export default function Page({ pageId, recordMap }) {
 
                 <motion.div variants={itemVariants} className='m-16' />
 
-                <motion.div variants={itemVariants}>
-                    <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="mt-3 px-4 py-2 text-sm rounded-xl hover:bg-blue-600 transition-colors"
-                        style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary)' }}
-                        type="button"
-                        onClick={async () => {
-                            try {
-                                await navigator.share({
-                                    title: "태인의 Blog",
-                                    text: title + " - 태인의 Blog",
-                                    url: "",
-                                });
-                            } catch (error) {
-                                console.error("공유에 실패하였습니다", error);
-                                try {
-                                    await navigator.clipboard.writeText(window.location.href);
-                                } catch (err) {
-                                    console.error("복사에 실패하였습니다", error);
-                                }
-                            }
-                        }}
-                    >
-                        <IonIcon name='share-social-outline' className='relative top-[3px] mr-2' />공유하기
-                    </motion.button>
-                </motion.div>
+                <PostActions title={title} pageId={pageId} />
 
                 <motion.div variants={itemVariants}>
                     <Backlinks currentId={pageId} />
