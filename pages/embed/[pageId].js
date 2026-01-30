@@ -202,6 +202,10 @@ export default function Page({ pageId, recordMap }) {
         width: 100dvw;
         max-width: 100dvw;
     }
+
+    img {
+        pointer-events: none;
+    }
     `}
             </style>
         </div>
