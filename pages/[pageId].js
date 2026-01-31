@@ -163,11 +163,8 @@ export default function Page({ pageId, recordMap, summary }) {
                     tags={tags}
                     date={date}
                     readTime={readTime}
+                    summary={summary}
                 />
-
-                <motion.div variants={itemVariants}>
-                    <AISummary summary={summary} />
-                </motion.div>
 
                 <motion.div variants={itemVariants}>
                     <NotionRenderer

@@ -1,16 +1,18 @@
 import { motion } from 'framer-motion';
+import BlurText from "../BlurText";
+import AISummary from "./AISummary";
 
 const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
 };
 
-export const PostHeader = ({ title, category, tags, date, readTime }) => {
+export const PostHeader = ({ title, category, tags, date, readTime, summary }) => {
     return (
         <div className='pt-6 pb-0 sticky z-10'>
             <motion.div
                 variants={itemVariants}
-                className="flex items-center gap-2 mb-3 flex-wrap"
+                className="flex items-center gap-2 flex-wrap"
             >
                 {category &&
                     <span
@@ -34,12 +36,19 @@ export const PostHeader = ({ title, category, tags, date, readTime }) => {
                     >#{tag}</span>
                 ))}
             </motion.div>
+
             <motion.h2
                 layoutId={`title-${title}`}
                 variants={itemVariants}
-                className='text-3xl font-bold m-0'
+                className="mt-2"
             >
-                {title}
+                <BlurText
+                    text={title}
+                    delay={50}
+                    animateBy="words"
+                    direction="bottom"
+                    className="text-3xl font-bold m-0"
+                />
             </motion.h2>
 
             <motion.span
@@ -50,6 +59,7 @@ export const PostHeader = ({ title, category, tags, date, readTime }) => {
                 {date && `${date} | `}<span className='tossface'>🕒</span> 읽는 데 {readTime}분 예상
             </motion.span>
             <motion.div variants={itemVariants} className='m-8' />
+            <AISummary summary={summary} />
         </div>
     );
 };
