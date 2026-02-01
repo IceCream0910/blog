@@ -56,7 +56,7 @@ export default function AISummary({ summary }) {
                         transition={{ duration: 0.3, ease: "easeInOut" }}
                         style={{ overflow: 'hidden' }}
                     >
-                        <div className="mt-1 p-5 text-gray-300 rounded-3xl bg-zinc-200 dark:bg-zinc-900">
+                        <div className="mt-1 p-5 text-zinc-700 dark:text-zinc-300 rounded-3xl bg-zinc-200 dark:bg-zinc-900">
                             <BlurText
                                 text={summary}
                                 delay={50}
