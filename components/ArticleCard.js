@@ -148,7 +148,7 @@ export const ArticleCard = ({ post, onClick }) => {
                         className="absolute bottom-0 right-0 w-1/5 md:w-2/5"
                     >
                         <img
-                            src={post.icon.emoji || post.icon.file?.url || post.icon.external?.url}
+                            src={(post.icon.icon?.name && post.icon.icon?.color) ? `https://www.notion.so/icons/${post.icon.icon.name}_${post.icon.icon.color}.svg` : (post.icon.emoji || post.icon.file?.url || post.icon.external?.url)}
                             alt="Post icon"
                             id="post-icon"
                             className="w-full rounded-none aspect-square grayscale transition-all ease-in"
