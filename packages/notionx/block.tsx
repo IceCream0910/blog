@@ -100,7 +100,7 @@ export function Block(props: BlockProps) {
   // ugly hack to make viewing raw collection views work properly
   // e.g., 6d886ca87ab94c21a16e3b82b43a57fb
   if (level === 0 && block.type === 'collection_view') {
-    ;(block as any).type = 'collection_view_page'
+    ; (block as any).type = 'collection_view_page'
   }
 
   const blockId = hideBlockId
@@ -125,11 +125,11 @@ export function Block(props: BlockProps) {
             block.type === 'page'
               ? block.properties
               : {
-                  title:
-                    recordMap.collection[
-                      getBlockCollectionId(block, recordMap)!
-                    ]?.value?.name
-                }
+                title:
+                  recordMap.collection[
+                    getBlockCollectionId(block, recordMap)!
+                  ]?.value?.name
+              }
 
           const coverPosition = (1 - (page_cover_position || 0.5)) * 100
           const pageCoverObjectPosition = `center ${coverPosition}%`
@@ -220,8 +220,8 @@ export function Block(props: BlockProps) {
                     {(block.type === 'collection_view_page' ||
                       (block.type === 'page' &&
                         block.parent_table === 'collection')) && (
-                      <components.Collection block={block} ctx={ctx} />
-                    )}
+                        <components.Collection block={block} ctx={ctx} />
+                      )}
 
                     {block.type !== 'collection_view_page' && (
                       <div
@@ -277,8 +277,8 @@ export function Block(props: BlockProps) {
               {(block.type === 'collection_view_page' ||
                 (block.type === 'page' &&
                   block.parent_table === 'collection')) && (
-                <components.Collection block={block} ctx={ctx} />
-              )}
+                  <components.Collection block={block} ctx={ctx} />
+                )}
 
               {block.type !== 'collection_view_page' && children}
 
@@ -441,10 +441,10 @@ export function Block(props: BlockProps) {
             style={
               block.type === 'numbered_list'
                 ? {
-                    listStyleType: getListStyle(
-                      getListNestingLevel(block.id, recordMap.block)
-                    )
-                  }
+                  listStyleType: getListStyle(
+                    getListNestingLevel(block.id, recordMap.block)
+                  )
+                }
                 : undefined
             }
           >
@@ -571,9 +571,8 @@ export function Block(props: BlockProps) {
       const columns =
         parent?.content?.length || Math.max(2, Math.ceil(1.0 / ratio))
 
-      const width = `calc((100% - (${
-        columns - 1
-      } * ${spacerWidth})) * ${ratio})`
+      const width = `calc((100% - (${columns - 1
+        } * ${spacerWidth})) * ${ratio})`
       const style = { width }
 
       return (
@@ -622,7 +621,7 @@ export function Block(props: BlockProps) {
             className={cs(
               'notion-callout',
               block.format?.block_color &&
-                `notion-${block.format?.block_color}_co`,
+              `notion-${block.format?.block_color}_co`,
               blockId
             )}
           >

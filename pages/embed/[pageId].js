@@ -71,6 +71,14 @@ export async function getStaticProps({ params }) {
             }
         }
 
+        // Notion API response format change fallback: un-nest extra 'value' wrapper
+        Object.keys(recordMap.block).forEach(key => {
+            const b = recordMap.block[key];
+            if (b && b.value && b.value.value && b.value.role) {
+                recordMap.block[key] = b.value;
+            }
+        });
+
         return {
             props: {
                 pageId,

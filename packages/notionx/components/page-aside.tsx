@@ -100,7 +100,7 @@ export function PageAside({
                     'notion-table-of-contents-item',
                     `notion-table-of-contents-item-indent-level-${tocItem.indentLevel}`,
                     activeSection === id &&
-                      'notion-table-of-contents-active-item'
+                    'notion-table-of-contents-active-item'
                   )}
                 >
                   <span
