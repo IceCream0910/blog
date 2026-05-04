@@ -92,7 +92,7 @@ export const ArticleCard = ({ post, onClick }) => {
             <motion.div className="relative z-10 flex flex-col h-full">
                 <motion.div
                     layoutId={`category-${post.id}`}
-                    className="flex items-center gap-2 mb-4"
+                    className="flex items-center gap-2 mb-4 font-bold"
                 >
                     <span
                         style={{
@@ -102,7 +102,7 @@ export const ArticleCard = ({ post, onClick }) => {
                                     ? 'var(--category-text-2)'
                                     : 'var(--category-text-3)',
                         }}
-                        className="text-sm"
+                        className="text-xs"
                     >
                         <span>{post.properties.카테고리.select?.name}</span>
 
@@ -114,7 +114,7 @@ export const ArticleCard = ({ post, onClick }) => {
                                     color: 'var(--tag-text)',
                                     opacity: .7
                                 }}
-                                className="text-sm"
+                                className="text-xs"
                             >
                                 #{tag.name}&nbsp;
                             </span>
@@ -129,7 +129,7 @@ export const ArticleCard = ({ post, onClick }) => {
                         wordBreak: 'keep-all',
                         overflowWrap: 'break-word',
                     }}
-                    className="text-2xl font-bold m-0 w-2/3 h-full"
+                    className="text-xl md:text-2xl font-black m-0 w-2/3 h-full mb-3"
                 >
                     {post.properties.이름.title[0]?.plain_text}
                 </motion.h2>
@@ -137,7 +137,7 @@ export const ArticleCard = ({ post, onClick }) => {
                 <motion.span
                     layoutId={`date-${post.id}`}
                     style={{ color: 'var(--date-text)' }}
-                    className="text-sm mt-auto"
+                    className="text-xs mt-auto font-bold"
                 >
                     {new Date(post.properties.작성일.date?.start).toLocaleDateString()}
                 </motion.span>

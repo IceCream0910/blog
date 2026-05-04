@@ -66,7 +66,7 @@ export default function Home({ list }) {
         image={`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/social-image`}
       />
 
-      <motion.h1 layoutId="page-hero" className="text-2xl text-gray-400 font-bold mb-4 md:text-4xl text-balance" style={{ wordBreak: 'keep-all', overflowWrap: 'break-word' }}>
+      <motion.h1 layoutId="page-hero" className="text-2xl text-gray-400 font-black mb-4 md:text-3xl text-balance" style={{ wordBreak: 'keep-all', overflowWrap: 'break-word' }}>
         안녕하세요, <span style={{ color: 'var(--foreground)' }}>윤태인</span>입니다.<br />
         <span style={{ color: 'var(--foreground)' }}>코드</span>, 그 사이의 <span style={{ color: 'var(--foreground)' }}>생각</span>을 기록합니다.
       </motion.h1>
@@ -74,9 +74,9 @@ export default function Home({ list }) {
         onClick={() => window.open('https://yuntae.in', '_blank')}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className="text-white font-bold py-2 px-4 rounded-2xl mb-16"
+        className="text-white text-md font-extrabold py-2 px-4 rounded-2xl mb-16"
         style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary)' }}>
-        About Me <IonIcon name="chevron-forward" className="relative top-0.5" />
+        About Me <IonIcon name="chevron-forward" className="relative top-1" />
       </motion.button>
 
 

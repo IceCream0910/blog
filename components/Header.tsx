@@ -25,7 +25,7 @@ export const Header: React.FC = () => {
             style={{ mask: showSearch ? 'unset' : 'linear-gradient(to bottom, var(--background) 45%, rgba(0, 0, 0, 0) 100%)' }}>
             <div className="container mx-auto px-4 py-8 header-content">
                 <Link href="/" className="no-underline text-inherit">
-                    <h3 className="text-lg m-0">태인의 Blog</h3>
+                    <h3 className="text-sm m-0 font-black">태인의 Blog</h3>
                 </Link>
 
                 <div className="flex space-x-4">

@@ -46,7 +46,7 @@ export default function Forest({ list }) {
     const savedPosition = sessionStorage.getItem('forestScrollPosition');
     const savedFilter = sessionStorage.getItem('forestFilter');
     const savedSort = sessionStorage.getItem('forestSort');
-    
+
     if (savedFilter) {
       setFilterOption(savedFilter);
     }
@@ -62,7 +62,7 @@ export default function Forest({ list }) {
         sessionStorage.setItem('forestScrollPosition', window.scrollY);
       }
     };
-    
+
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -92,10 +92,10 @@ export default function Forest({ list }) {
       return [...filtered].sort((a, b) => {
         const aType = a.properties["forest_분류"]?.select?.name;
         const bType = b.properties["forest_분류"]?.select?.name;
-        
+
         const aTime = aType === "일지" ? a.created_time : a.last_edited_time;
         const bTime = bType === "일지" ? b.created_time : b.last_edited_time;
-        
+
         return new Date(bTime) - new Date(aTime);
       });
     }
@@ -131,7 +131,7 @@ export default function Forest({ list }) {
     <main className="mx-auto px-4 py-8 pb-20">
       <motion.h1
         layoutId="page-hero"
-        className="text-3xl md:text-5xl text-gray-400 font-bold mt-16 md:text-4xl text-center text-balance mb-20"
+        className="text-3xl md:text-4xl text-gray-400 font-black mt-16 md:text-4xl text-center text-balance mb-20"
         style={{ wordBreak: "keep-all", overflowWrap: "break-word" }}
       >
         저의 <span style={{ color: "var(--foreground)" }}>디지털 숲🌳</span>에<br />오신 것을 환영합니다
@@ -181,14 +181,14 @@ export default function Forest({ list }) {
               ) : (
                 <article className="bg-gray-50 dark:bg-[--card-bg] rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-200 h-full flex flex-col">
                   <div className="flex-1">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white m-0 mb-4 leading-tight">
+                    <h2 className="text-xl font-black text-gray-900 dark:text-white m-0 mb-4 leading-tight">
                       {post.properties.이름.title[0]?.plain_text}
                     </h2>
 
                     <div className="mb-4">
                       <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mb-2">
                         {post.properties.forest_articles.rich_text.length != 0 && JSON.parse(post.properties.forest_articles.rich_text.map(item => item.text.content).join('').replaceAll("”", "\"").replaceAll("“", "\"")).map((text, i) => (
-                          <span key={i} className="text-sm text-gray-500 dark:text-gray-300">
+                          <span key={i} className="text-xs text-gray-500 dark:text-gray-300">
                             <IonIcon name="reader-outline" className="relative top-[2px] mr-1" />
                             {text}<br /></span>
                         ))}
@@ -267,8 +267,8 @@ function Folder({ title, desc }) {
       </svg>
 
       <div className="absolute bottom-4 left-4" style={{ color: textColor }}>
-        <p className="font-semibold text-lg m-0">{title}</p>
-        <p className="text-sm opacity-60 mt-0 mb-2">{desc}</p>
+        <p className="font-black text-lg m-0">{title}</p>
+        <p className="text-xs opacity-60 mt-0 mb-2">{desc}</p>
       </div>
 
       <div className="absolute bottom-4 right-4 text-xl" style={{ color: textColor }}>⋯</div>

@@ -12,7 +12,7 @@ export const PostHeader = ({ title, category, tags, date, readTime, summary }) =
         <div className='pt-6 pb-0 sticky z-10'>
             <motion.div
                 variants={itemVariants}
-                className="flex items-center gap-2 flex-wrap"
+                className="flex items-center gap-2 flex-wrap font-bold"
             >
                 {category &&
                     <span
@@ -47,14 +47,14 @@ export const PostHeader = ({ title, category, tags, date, readTime, summary }) =
                     delay={50}
                     animateBy="words"
                     direction="bottom"
-                    className="text-3xl font-bold m-0"
+                    className="text-3xl font-black m-0"
                 />
             </motion.h2>
 
             <motion.span
                 variants={itemVariants}
                 style={{ color: 'var(--date-text)' }}
-                className="text-sm m-0 block mt-2"
+                className="text-sm m-0 block mt-2 font-bold"
             >
                 {date && `${date} | `}<span className='tossface'>🕒</span> 읽는 데 {readTime}분 예상
             </motion.span>
