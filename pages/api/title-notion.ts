@@ -9,18 +9,27 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
   const { block, recordMap } = req.body;
 
-  let currentBlock = block;
+  // Notion API response format change fallback: un-nest extra 'value' wrapper
+  Object.keys(recordMap.block).forEach(key => {
+    const b = recordMap.block[key];
+    if (b && b.value && b.value.value && b.value.role) {
+      recordMap.block[key] = b.value;
+    }
+  });
+
+  let currentBlock = block.value;
 
   while (currentBlock) {
     if (currentBlock.type === 'page') {
       const title = currentBlock.properties?.title?.[0]?.[0].toString();
-      const link = currentBlock.id + '#' + block.id.replaceAll('-', '');
+      const link = currentBlock.id + '#' + block.value.id.replaceAll('-', '');
       return res.status(200).json({ title, link });
     }
 
     // 다음 parent block 찾기
     const parentId = currentBlock.parent_id;
     currentBlock = recordMap.block[parentId]?.value;
+
 
     // parent block을 찾을 수 없는 경우 종료
     if (!currentBlock) {
