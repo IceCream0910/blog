@@ -1,6 +1,6 @@
 import type React from 'react'
 import { type ImageBlock } from 'notion-types'
-import { getTextContent } from 'notion-utils'
+import { getBlockValue, getTextContent } from 'notion-utils'
 
 import { LazyImage } from '../components/lazy-image'
 import { dummyLink, NotionContextProvider, useNotionContext } from '../context'
@@ -33,15 +33,21 @@ export function CollectionCard({
   const coverPosition = (1 - page_cover_position) * 100
   const cardCoverPosition = (1 - card_cover_position) * 100
 
-  if (cover?.type === 'page_content') {
+  if (cover?.type === 'page_content' || cover?.type === 'page_content_first') {
     const contentBlockId = block.content?.find((blockId) => {
-      const block = recordMap.block[blockId]?.value
+      const block = getBlockValue(recordMap.block[blockId])
 
       return block?.type === 'image'
     })
 
     if (contentBlockId) {
-      const contentBlock = recordMap.block[contentBlockId]?.value as ImageBlock
+      const contentBlock = getBlockValue(
+        recordMap.block[contentBlockId]
+      ) as ImageBlock
+      if (!contentBlock) {
+        console.log('"page_content" missing block', contentBlockId)
+        return null
+      }
 
       const source =
         contentBlock.properties?.source?.[0]?.[0] ??

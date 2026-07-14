@@ -46,20 +46,21 @@ export async function getStaticProps({ params }) {
         };
     }
 
-    const match = rawPageId.match(/^(.*)-([a-f0-9]{32})$/);
-    let pageId = rawPageId;
+    const pageIdMatch = rawPageId.match(
+        /([a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i
+    );
 
-    if (pageId.length === 32) {
-        pageId = pageId.replace(/-/g, '').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5');
-    } else if (match && match[2]) {
-        pageId = match[2].replace(/-/g, '').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5');
-    } else {
-        if (pageId.length !== 36) {
-            return {
-                notFound: true
-            };
-        }
+    if (!pageIdMatch) {
+        return {
+            notFound: true
+        };
     }
+
+    const compactPageId = pageIdMatch[1].replace(/-/g, '');
+    const pageId = compactPageId.replace(
+        /(.{8})(.{4})(.{4})(.{4})(.{12})/,
+        '$1-$2-$3-$4-$5'
+    );
 
     try {
         const notion = new NotionAPI()

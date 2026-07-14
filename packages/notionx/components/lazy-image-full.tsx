@@ -166,7 +166,7 @@ const getLoadingCmd =
     // Kick off request for Image and attach listeners for response
     loadingPromise.promise
       .then((_res) => instance.update(Action.LoadSuccess({})))
-      .catch((err) => {
+      .catch((err: any) => {
         // If the Loading Promise was canceled, it means we have stopped
         // loading due to unmount, rather than an error.
         if (!err.isCanceled) {
@@ -326,9 +326,8 @@ export class LazyImageFull extends Component<
         imageProps
       })
     } else {
-      const InViewComponent = InView as any
       return (
-        <InViewComponent
+        <InView
           rootMargin='50px 0px'
           // TODO: reconsider threshold
           threshold={0.01}
@@ -337,8 +336,8 @@ export class LazyImageFull extends Component<
             this.update(Action.ViewChanged({ inView }))
           }
         >
-          {({ ref }: RenderProps) => {
-            const result = children({
+          {({ ref }: RenderProps) =>
+            children({
               // We know that the state tags and the enum match up, apart
               // from Buffering not being exposed
               imageState:
@@ -348,9 +347,8 @@ export class LazyImageFull extends Component<
               imageProps,
               ref
             })
-            return result as any
-          }}
-        </InViewComponent>
+          }
+        </InView>
       )
     }
   }

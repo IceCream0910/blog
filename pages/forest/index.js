@@ -15,7 +15,23 @@ export async function getStaticProps() {
           property: "title",
           direction: "ascending"
         }
-      ]
+      ],
+      filter: {
+        or: [
+          {
+            property: "forest_분류",
+            select: {
+              equals: "일지"
+            }
+          },
+          {
+            property: "forest_분류",
+            select: {
+              equals: "문서"
+            }
+          }
+        ]
+      }
     });
 
     console.log(data)

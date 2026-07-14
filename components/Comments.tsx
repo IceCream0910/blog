@@ -83,7 +83,7 @@ export default function Comments({ pageId }: CommentsProps) {
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="입력한 댓글은 수정하거나 삭제할 수 없어요"
-                    className="w-full p-4 rounded-2xl border border-gray-200 dark:border-gray-700 
+                    className="w-full text-sm p-4 rounded-2xl border border-gray-200 dark:border-gray-700 
                    bg-transparent resize-none transition-all focus:ring-2 
                    focus:ring-blue-500 focus:border-transparent"
                     rows={1}

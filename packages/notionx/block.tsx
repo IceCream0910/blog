@@ -3,6 +3,10 @@ import {
   getBlockCollectionId,
   getBlockIcon,
   getBlockParentPage,
+  getBlockValue,
+  getListNestingLevel,
+  getListNumber,
+  getListStyle,
   getPageTableOfContents,
   getTextContent,
   uuidToId
@@ -11,6 +15,7 @@ import React from 'react'
 
 import { AssetWrapper } from './components/asset-wrapper'
 import { Audio } from './components/audio'
+import { Button } from './components/button'
 import { EOI } from './components/eoi'
 import { File } from './components/file'
 import { GoogleDrive } from './components/google-drive'
@@ -22,13 +27,7 @@ import { SyncPointerBlock } from './components/sync-pointer-block'
 import { Text } from './components/text'
 import { useNotionContext } from './context'
 import { LinkIcon } from './icons/link-icon'
-import {
-  cs,
-  getListNestingLevel,
-  getListNumber,
-  getListStyle,
-  isUrl
-} from './utils'
+import { cs, isUrl } from './utils'
 
 interface BlockProps {
   block: types.Block
@@ -100,7 +99,7 @@ export function Block(props: BlockProps) {
   // ugly hack to make viewing raw collection views work properly
   // e.g., 6d886ca87ab94c21a16e3b82b43a57fb
   if (level === 0 && block.type === 'collection_view') {
-    ; (block as any).type = 'collection_view_page'
+    ;(block as any).type = 'collection_view_page'
   }
 
   const blockId = hideBlockId
@@ -120,16 +119,25 @@ export function Block(props: BlockProps) {
           page_small_text
         } = block.format || {}
 
+        const toc = getPageTableOfContents(
+          block as types.PageBlock,
+          recordMap
+        )
+        const hasToc =
+          showTableOfContents && toc.length >= minTableOfContentsItems
+        const hasAside = !!((hasToc || pageAside) && !page_full_width)
+
         if (fullPage) {
           const properties =
             block.type === 'page'
               ? block.properties
               : {
-                title:
-                  recordMap.collection[
-                    getBlockCollectionId(block, recordMap)!
-                  ]?.value?.name
-              }
+                  title: getBlockValue(
+                    recordMap.collection[
+                      getBlockCollectionId(block, recordMap)!
+                    ]
+                  )?.name
+                }
 
           const coverPosition = (1 - (page_cover_position || 0.5)) * 100
           const pageCoverObjectPosition = `center ${coverPosition}%`
@@ -143,14 +151,6 @@ export function Block(props: BlockProps) {
           const pageIcon = getBlockIcon(block, recordMap) ?? defaultPageIcon
           const isPageIconUrl = pageIcon && isUrl(pageIcon)
 
-          const toc = getPageTableOfContents(
-            block as types.PageBlock,
-            recordMap
-          )
-
-          const hasToc =
-            showTableOfContents && toc.length >= minTableOfContentsItems
-          const hasAside = !!((hasToc || pageAside) && !page_full_width)
           const hasPageCover = !!(pageCover || page_cover)
 
           return (
@@ -220,8 +220,8 @@ export function Block(props: BlockProps) {
                     {(block.type === 'collection_view_page' ||
                       (block.type === 'page' &&
                         block.parent_table === 'collection')) && (
-                        <components.Collection block={block} ctx={ctx} />
-                      )}
+                      <components.Collection block={block} ctx={ctx} />
+                    )}
 
                     {block.type !== 'collection_view_page' && (
                       <div
@@ -274,13 +274,28 @@ export function Block(props: BlockProps) {
 
               {pageHeader}
 
-              {(block.type === 'collection_view_page' ||
-                (block.type === 'page' &&
-                  block.parent_table === 'collection')) && (
-                  <components.Collection block={block} ctx={ctx} />
-                )}
+              <div className={hasAside ? 'page-has-aside' : undefined}>
+                <div className='custom-content'>
+                  {(block.type === 'collection_view_page' ||
+                    (block.type === 'page' &&
+                      block.parent_table === 'collection')) && (
+                    <components.Collection block={block} ctx={ctx} />
+                  )}
 
-              {block.type !== 'collection_view_page' && children}
+                  {block.type !== 'collection_view_page' && children}
+                </div>
+
+                {hasAside && (
+                  <PageAside
+                    toc={toc}
+                    activeSection={activeSection}
+                    setActiveSection={setActiveSection}
+                    hasToc={hasToc}
+                    hasAside={hasAside}
+                    pageAside={pageAside}
+                  />
+                )}
+              </div>
 
               {pageFooter}
             </main>
@@ -307,7 +322,9 @@ export function Block(props: BlockProps) {
     // fallthrough
     case 'sub_header':
     // fallthrough
-    case 'sub_sub_header': {
+    case 'sub_sub_header':
+    // fallthrough
+    case 'header_4': {
       if (!block.properties) return null
 
       const blockColor = block.format?.block_color
@@ -340,11 +357,13 @@ export function Block(props: BlockProps) {
       const isH1 = block.type === 'header'
       const isH2 = block.type === 'sub_header'
       const isH3 = block.type === 'sub_sub_header'
+      const isH4 = block.type === 'header_4'
 
       const classNameStr = cs(
         isH1 && 'notion-h notion-h1',
         isH2 && 'notion-h notion-h2',
         isH3 && 'notion-h notion-h3',
+        isH4 && 'notion-h notion-h4',
         blockColor && `notion-${blockColor}`,
         indentLevelClass,
         blockId
@@ -379,11 +398,17 @@ export function Block(props: BlockProps) {
             {innerHeader}
           </h3>
         )
-      } else {
+      } else if (isH3) {
         headerBlock = (
           <h4 className={classNameStr} data-id={id}>
             {innerHeader}
           </h4>
+        )
+      } else {
+        headerBlock = (
+          <h5 className={classNameStr} data-id={id}>
+            {innerHeader}
+          </h5>
         )
       }
 
@@ -441,10 +466,10 @@ export function Block(props: BlockProps) {
             style={
               block.type === 'numbered_list'
                 ? {
-                  listStyleType: getListStyle(
-                    getListNestingLevel(block.id, recordMap.block)
-                  )
-                }
+                    listStyleType: getListStyle(
+                      getListNestingLevel(block.id, recordMap.block)
+                    )
+                  }
                 : undefined
             }
           >
@@ -454,7 +479,7 @@ export function Block(props: BlockProps) {
 
       let output: React.ReactNode | null = null
       const isTopLevel =
-        block.type !== recordMap.block[block.parent_id]?.value?.type
+        block.type !== getBlockValue(recordMap.block[block.parent_id])?.type
       const start = getListNumber(block.id, recordMap.block)
 
       if (block.content) {
@@ -567,12 +592,13 @@ export function Block(props: BlockProps) {
       // note: notion uses 46px
       const spacerWidth = `min(32px, 4vw)`
       const ratio = block.format?.column_ratio || 0.5
-      const parent = recordMap.block[block.parent_id]?.value
+      const parent = getBlockValue(recordMap.block[block.parent_id])
       const columns =
         parent?.content?.length || Math.max(2, Math.ceil(1.0 / ratio))
 
-      const width = `calc((100% - (${columns - 1
-        } * ${spacerWidth})) * ${ratio})`
+      const width = `calc((100% - (${
+        columns - 1
+      } * ${spacerWidth})) * ${ratio})`
       const style = { width }
 
       return (
@@ -621,7 +647,7 @@ export function Block(props: BlockProps) {
             className={cs(
               'notion-callout',
               block.format?.block_color &&
-              `notion-${block.format?.block_color}_co`,
+                `notion-${block.format?.block_color}_co`,
               blockId
             )}
           >
@@ -725,6 +751,18 @@ export function Block(props: BlockProps) {
         </details>
       )
 
+    case 'button': {
+      const ButtonComponent = components.Button || Button
+
+      return (
+        <ButtonComponent
+          blockId={blockId}
+          block={block as types.ButtonBlock}
+          className={blockId}
+        />
+      )
+    }
+
     case 'table_of_contents': {
       const page = getBlockParentPage(block, recordMap)
       if (!page) return null
@@ -792,7 +830,7 @@ export function Block(props: BlockProps) {
 
     case 'alias': {
       const blockPointerId = block?.format?.alias_pointer?.id
-      const linkedBlock = recordMap.block[blockPointerId]?.value
+      const linkedBlock = getBlockValue(recordMap.block[blockPointerId])
       if (!linkedBlock) {
         console.log('"alias" missing block', blockPointerId)
         return null
@@ -816,8 +854,13 @@ export function Block(props: BlockProps) {
       )
 
     case 'table_row': {
-      const tableBlock = recordMap.block[block.parent_id]
-        ?.value as types.TableBlock
+      const tableBlock = getBlockValue(
+        recordMap.block[block.parent_id]
+      ) as types.TableBlock
+      if (!tableBlock) {
+        return null
+      }
+
       const order = tableBlock.format?.table_block_column_order
       const formatMap = tableBlock.format?.table_block_column_format
       const backgroundColor = block.format?.block_color

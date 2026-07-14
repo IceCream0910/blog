@@ -1,4 +1,5 @@
 import throttle from 'lodash.throttle'
+import { motion } from 'framer-motion'
 import { type TableOfContentsEntry, uuidToId } from 'notion-utils'
 import React from 'react'
 
@@ -55,7 +56,7 @@ export function PageAside({
 
         setActiveSection(currentSectionId)
       }, throttleMs),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [
       // explicitly not taking a dependency on activeSection
       setActiveSection
@@ -83,40 +84,49 @@ export function PageAside({
   return (
     <aside className={cs('notion-aside', className)}>
       {hasToc && (
-        <div className='notion-aside-table-of-contents'>
-          <div className='notion-aside-table-of-contents-header'>
-            Table of Contents
-          </div>
+        <nav className='notion-contentPosition'>
+          {toc.map((tocItem) => {
+            const id = uuidToId(tocItem.id)
+            const isActive = activeSection === id
 
-          <nav className='notion-table-of-contents'>
-            {toc.map((tocItem) => {
-              const id = uuidToId(tocItem.id)
+            return (
+              <a
+                key={id}
+                href={`#${id}`}
+                className={cs(
+                  'item',
+                  `level${tocItem.indentLevel}`,
+                  isActive && 'active'
+                )}
+              >
+                {isActive && (
+                  <motion.div
+                    className='activeLine'
+                    key='activeLine'
+                    layoutId='activeLine'
+                    transition={{ duration: 0.25 }}
+                  />
+                )}
 
-              return (
-                <a
-                  key={id}
-                  href={`#${id}`}
-                  className={cs(
-                    'notion-table-of-contents-item',
-                    `notion-table-of-contents-item-indent-level-${tocItem.indentLevel}`,
-                    activeSection === id &&
-                    'notion-table-of-contents-active-item'
-                  )}
+                <motion.div
+                  className='text-sm'
+                  style={{ marginBottom: '10px' }}
+                  initial={false}
+                  animate={{
+                    fontWeight: isActive ? 800 : 100,
+                    color: isActive
+                      ? 'var(--primary)'
+                      : 'var(--notion-gray)',
+                    fontSize: isActive ? '0.95em' : '0.9em'
+                  }}
+                  transition={{ duration: 0.25 }}
                 >
-                  <span
-                    className='notion-table-of-contents-item-body'
-                    style={{
-                      display: 'inline-block',
-                      marginLeft: tocItem.indentLevel * 16
-                    }}
-                  >
-                    {tocItem.text}
-                  </span>
-                </a>
-              )
-            })}
-          </nav>
-        </div>
+                  {tocItem.text}
+                </motion.div>
+              </a>
+            )
+          })}
+        </nav>
       )}
 
       {pageAside}
