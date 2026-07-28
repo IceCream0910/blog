@@ -23,7 +23,7 @@
     "gsap": "^3.12.7",
     "katex": "^0.16.19",
     "motion": "^12.29.2",
-    "next": "16.2.6",
+    "next": "16.2.11",
     "notion-client": "^7.10.0",
     "notion-types": "^7.10.0",
     "notion-utils": "^7.10.0",
