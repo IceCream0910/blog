@@ -69,7 +69,9 @@ export async function getStaticProps({ params }) {
     );
 
     try {
-        const notion = new NotionAPI()
+        const notion = new NotionAPI({
+            apiBaseUrl: 'https://app.notion.com/api/v3',
+        })
         const recordMap = await notion.getPage(pageId)
 
         if (!recordMap || !recordMap.block || Object.keys(recordMap.block).length === 0) {
