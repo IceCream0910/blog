@@ -1,0 +1,586 @@
+.forest-explorer {
+  --forest-line: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --forest-muted: color-mix(in srgb, var(--foreground) 52%, transparent);
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  width: 100%;
+  height: calc(100dvh - 94px);
+  margin: 82px auto 12px;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.forest-sidebar {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 18px;
+  overflow: hidden;
+  border-right: 1px solid var(--forest-line);
+}
+
+.forest-sidebar-heading,
+.forest-folder-label,
+.forest-document-item,
+.forest-preview-toolbar,
+.forest-breadcrumb,
+.forest-document-heading,
+.forest-document-heading p {
+  display: flex;
+  align-items: center;
+}
+
+.forest-sidebar-heading {
+  justify-content: space-between;
+  padding: 0 8px 20px;
+}
+
+.forest-eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--primary);
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+.forest-sidebar-heading h1 {
+  margin: 0;
+  font-size: 1.65rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.forest-count {
+  display: grid;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  place-items: center;
+  border: 1px solid var(--forest-line);
+  border-radius: 12px;
+  color: var(--forest-muted);
+  background: color-mix(in srgb, var(--background) 70%, transparent);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.forest-search {
+  display: flex;
+  height: 44px;
+  align-items: center;
+  gap: 10px;
+  margin: 0 4px 18px;
+  padding: 0 13px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: var(--forest-muted);
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.forest-search:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  background: var(--background);
+}
+
+.forest-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--foreground);
+  background: transparent;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.forest-search input::placeholder {
+  color: var(--forest-muted);
+}
+
+.forest-search button {
+  display: grid;
+  padding: 0;
+  border: 0;
+  place-items: center;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.forest-folder-label {
+  gap: 8px;
+  padding: 0 9px 10px;
+  color: var(--forest-muted);
+  font-size: 0.71rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.forest-sort {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 5px 8px;
+  padding: 0 7px;
+  color: var(--forest-muted);
+  font-size: 0.67rem;
+  font-weight: 800;
+}
+
+.forest-sort>span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.forest-sort select {
+  min-width: 0;
+  padding: 6px 24px 6px 9px;
+  border: 1px solid var(--forest-line);
+  border-radius: 9px;
+  outline: 0;
+  color: var(--foreground);
+  background-color: color-mix(in srgb, var(--background) 72%, transparent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.forest-folder-label span:nth-child(2) {
+  flex: 1;
+}
+
+.forest-document-list {
+  min-height: 0;
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-color: color-mix(in srgb, var(--foreground) 18%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+.forest-document-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.forest-document-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 18%, transparent);
+}
+
+.forest-document-item {
+  width: 100%;
+  gap: 12px;
+  margin: 2px 0;
+  padding: 12px 11px;
+  border: 0;
+  border-radius: 15px;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.forest-document-item:hover {
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+
+.forest-document-item:active {
+  transform: scale(0.985);
+}
+
+.forest-document-item.is-active {
+  background: color-mix(in srgb, var(--primary) 13%, transparent);
+}
+
+.forest-file-icon,
+.forest-document-symbol {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.forest-file-icon {
+  width: 36px;
+  height: 42px;
+  border: 1px solid color-mix(in srgb, var(--primary) 16%, transparent);
+  border-radius: 8px 12px 8px 8px;
+  font-size: 1rem;
+}
+
+.forest-file-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 5px;
+}
+
+.forest-file-copy strong {
+  overflow: hidden;
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.forest-file-copy small {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+  color: var(--forest-muted);
+  font-size: 0.65rem;
+}
+
+.forest-file-chevron {
+  flex: 0 0 auto;
+  color: var(--forest-muted);
+  font-size: 0.8rem;
+  opacity: 0;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.forest-document-item:hover .forest-file-chevron,
+.forest-document-item.is-active .forest-file-chevron {
+  opacity: 1;
+}
+
+.forest-document-item:hover .forest-file-chevron {
+  transform: translateX(2px);
+}
+
+.forest-empty-list {
+  padding: 40px 16px;
+  color: var(--forest-muted);
+  text-align: center;
+  font-size: 0.78rem;
+}
+
+.forest-preview {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--background);
+}
+
+.forest-preview-toolbar {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 56px;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--forest-line);
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.forest-breadcrumb {
+  min-width: 0;
+  gap: 8px;
+  color: var(--forest-muted);
+  font-size: 0.72rem;
+}
+
+.forest-breadcrumb span {
+  white-space: nowrap;
+}
+
+.forest-breadcrumb strong {
+  overflow: hidden;
+  color: var(--foreground);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.forest-open-document,
+.forest-document-back {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 10px;
+  place-items: center;
+  color: var(--forest-muted);
+  background: transparent;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.forest-open-document:hover,
+.forest-document-back:hover {
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.forest-document-back {
+  display: none;
+}
+
+.forest-preview-scroll {
+  width: 100%;
+  height: 100%;
+  padding-top: 56px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: color-mix(in srgb, var(--foreground) 20%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+.forest-preview-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.forest-preview-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.forest-preview-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 20%, transparent);
+}
+
+.forest-document-heading,
+.forest-notion-document {
+  width: min(100% - 64px, 920px);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.forest-document-heading {
+  gap: 18px;
+  padding: 58px 0 32px;
+  border-bottom: 1px solid var(--forest-line);
+}
+
+.forest-document-symbol {
+  width: 58px;
+  height: 66px;
+  border-radius: 13px 20px 13px 13px;
+  font-size: 1.55rem;
+}
+
+.forest-document-heading h2 {
+  margin: 0 0 8px;
+  font-size: clamp(1.65rem, 3vw, 2.6rem);
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  line-height: 1.2;
+}
+
+.forest-document-heading p {
+  gap: 6px;
+  margin: 0;
+  color: var(--forest-muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.forest-document-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 14px;
+}
+
+.forest-notion-document {
+  padding: 28px 0 90px;
+}
+
+.forest-notion-document .notion {
+  width: 100%;
+}
+
+.forest-notion-document .notion-page {
+  width: 100%;
+  padding: 0;
+}
+
+.forest-notion-document .notion-page-content {
+  width: 100%;
+}
+
+.forest-notion-document .notion-page-content-inner {
+  width: 100%;
+  max-width: none;
+}
+
+.forest-notion-document .notion-title {
+  display: none;
+}
+
+.forest-notion-document article:hover {
+  transform: none;
+}
+
+.forest-document-loading {
+  display: flex;
+  height: 40vh;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.forest-document-loading span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--primary);
+  animation: forest-loading 900ms ease-in-out infinite alternate;
+}
+
+.forest-document-loading span:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.forest-document-loading span:nth-child(3) {
+  animation-delay: 300ms;
+}
+
+@keyframes forest-loading {
+  from {
+    opacity: 0.3;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+.forest-document-error,
+.forest-no-document {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  color: var(--forest-muted);
+  text-align: center;
+}
+
+.forest-document-error>svg,
+.forest-no-document>svg {
+  font-size: 2rem;
+}
+
+.forest-document-error button {
+  padding: 9px 14px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--primary);
+  background: var(--primary-light);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.forest-no-document h2 {
+  margin-bottom: 0;
+  color: var(--foreground);
+}
+
+.forest-no-document p {
+  max-width: 420px;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 760px) {
+  .forest-explorer {
+    display: block;
+    width: 100%;
+    height: calc(100dvh - 70px);
+    margin: 70px 0 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .forest-sidebar,
+  .forest-preview {
+    width: 100%;
+    height: 100%;
+  }
+
+  .forest-sidebar {
+    padding: 24px 14px 14px;
+    border-right: 0;
+  }
+
+  .forest-preview {
+    display: none;
+  }
+
+  .forest-explorer.is-mobile-document .forest-sidebar {
+    display: none;
+  }
+
+  .forest-explorer.is-mobile-document .forest-preview {
+    display: block;
+  }
+
+  .forest-document-back {
+    display: grid;
+  }
+
+  .forest-preview-toolbar {
+    padding: 0 12px;
+  }
+
+  .forest-breadcrumb span,
+  .forest-breadcrumb>svg {
+    display: none;
+  }
+
+  .forest-document-heading,
+  .forest-notion-document {
+    width: min(100% - 34px, 680px);
+  }
+
+  .forest-document-heading {
+    gap: 13px;
+    padding: 34px 0 24px;
+  }
+
+  .forest-document-symbol {
+    width: 46px;
+    height: 52px;
+    font-size: 1.15rem;
+  }
+
+  .forest-document-heading h2 {
+    font-size: clamp(1.4rem, 7vw, 2rem);
+  }
+
+  .forest-notion-document {
+    padding-top: 20px;
+  }
+
+  .forest-notion-document .notion-text {
+    font-size: 1rem;
+    line-height: 1.75;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1040px) {
+  .forest-explorer {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+
+  .forest-document-heading,
+  .forest-notion-document {
+    width: min(100% - 40px, 780px);
+  }
+}
