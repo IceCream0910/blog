@@ -15,7 +15,7 @@ export default function AISummary({ summary }) {
     return (
         <motion.div
             variants={containerVariants}
-            className="my-8 p-1 rounded-3xl bg-zinc-100 dark:bg-zinc-800 relative z-0"
+            className="mb-8 p-1 rounded-3xl bg-zinc-100 dark:bg-zinc-800 relative z-0"
         >
             <button
                 type="button"

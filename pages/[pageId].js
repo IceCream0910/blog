@@ -2,7 +2,7 @@ import { NotionAPI } from 'notion-client'
 import { NotionRenderer } from '../packages/notionx'
 import 'prismjs/themes/prism-tomorrow.css'
 import 'katex/dist/katex.min.css'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import Comments from '../components/Comments'
 import { Backlinks } from '../components/Backlinks'
 import { PageHead } from '../components/PageHead'
@@ -18,7 +18,6 @@ import { useDarkMode } from '../hooks/useDarkMode'
 
 import { PostHeader } from '../components/Post/PostHeader'
 import { PostActions } from '../components/Post/PostActions'
-import AISummary from '../components/Post/AISummary'
 
 export async function getStaticPaths() {
     try {
@@ -122,6 +121,7 @@ export default function Page({ pageId, recordMap, summary }) {
     const { title, category, tags, date } = usePostMetadata(pageId, recordMap);
     const readTime = useReadingTime(recordMap);
     const darkMode = useDarkMode();
+    const narrationContentRef = useRef(null);
 
     useEffect(() => {
         return () => {
@@ -168,6 +168,8 @@ export default function Page({ pageId, recordMap, summary }) {
 
             <div className='page-container'>
                 <PostHeader
+                    pageId={pageId}
+                    contentRef={narrationContentRef}
                     title={title}
                     category={category}
                     tags={tags}
@@ -176,7 +178,7 @@ export default function Page({ pageId, recordMap, summary }) {
                     summary={summary}
                 />
 
-                <motion.div variants={itemVariants}>
+                <motion.div variants={itemVariants} ref={narrationContentRef} className="post-narration-content">
                     <NotionRenderer
                         recordMap={recordMap}
                         components={{

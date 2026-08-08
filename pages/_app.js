@@ -3,11 +3,14 @@ import "../styles/globals.css";
 import '../styles/notion.css'
 import '../styles/recap.css'
 import '../styles/forest.css'
+import '../styles/post-narration.css'
 import { Header } from "../components/Header";
 import { useRouter } from 'next/router';
 import { SliderTabBar } from "../components/SliderTabBar";
 import { Spinner } from "../components/Spinner";
 import { motion } from 'framer-motion';
+
+import { ThemeProvider } from "../hooks/useDarkMode";
 
 export const currentPostContext = createContext({
   title: '',
@@ -47,43 +50,45 @@ export default function App({ Component, pageProps }) {
   }, [router]);
 
   return (
-    <currentPostContext.Provider value={{ title, postId, setTitle, setPostId }}>
-      {loading ? title ? (
-        <motion.div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            background: 'var(--background)',
-            overflow: 'hidden',
-            zIndex: 300,
-          }}
-          transition={{ layout: { duration: 0.5, ease: "easeInOut" } }}
-          className="flex flex-col justify-center px-4 md:px-16"
-        >
-          <motion.h2
-            transition={{ duration: 0.5, ease: "easeInOut" }}
+    <ThemeProvider>
+      <currentPostContext.Provider value={{ title, postId, setTitle, setPostId }}>
+        {loading ? title ? (
+          <motion.div
             style={{
-              color: 'var(--foreground)',
-              wordBreak: 'keep-all',
-              overflowWrap: 'break-word',
-              textWrap: 'balance'
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              background: 'var(--background)',
+              overflow: 'hidden',
+              zIndex: 300,
             }}
-            className="shimmering w-fit text-3xl md:text-5xl font-black mt-2 -ml-1px"
+            transition={{ layout: { duration: 0.5, ease: "easeInOut" } }}
+            className="flex flex-col justify-center px-4 md:px-16"
           >
-            {title || document.title}
-          </motion.h2>
-        </motion.div>
-      ) : (
-        <Spinner />
-      ) : (
-        <Component {...pageProps} key={router.asPath} />
-      )}
-      {router.pathname == '/graph' ?
-        <SliderTabBar /> :
-        <Header />}
-    </currentPostContext.Provider>
+            <motion.h2
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+              style={{
+                color: 'var(--foreground)',
+                wordBreak: 'keep-all',
+                overflowWrap: 'break-word',
+                textWrap: 'balance'
+              }}
+              className="shimmering w-fit text-3xl md:text-5xl font-black mt-2 -ml-1px"
+            >
+              {title || document.title}
+            </motion.h2>
+          </motion.div>
+        ) : (
+          <Spinner />
+        ) : (
+          <Component {...pageProps} key={router.asPath} />
+        )}
+        {router.pathname == '/graph' ?
+          <SliderTabBar /> :
+          <Header />}
+      </currentPostContext.Provider>
+    </ThemeProvider>
   );
 }
