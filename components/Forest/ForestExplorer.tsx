@@ -41,6 +41,8 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
   const [mobileDocumentOpen, setMobileDocumentOpen] = useState(false);
   const cacheRef = useRef(new Map<string, any>());
   const documentItemRefs = useRef(new Map<string, HTMLButtonElement>());
+  const listRef = useRef<HTMLElement | null>(null);
+  const listScrollTopRef = useRef<number>(0);
 
   const selectedDocument = documents.find((document) => document.id === selectedId) || documents[0];
   const visibleDocuments = useMemo(() => {
@@ -62,21 +64,41 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
     const documentId = typeof router.query.document === "string" ? router.query.document : "";
     if (documentId && documents.some((document) => document.id === documentId)) {
       setSelectedId(documentId);
+      if (typeof window !== "undefined") sessionStorage.setItem("forest_last_selected_id", documentId);
       setMobileDocumentOpen(true);
     } else {
+      const savedId = typeof window !== "undefined" ? sessionStorage.getItem("forest_last_selected_id") : null;
+      if (savedId && documents.some((doc) => doc.id === savedId)) {
+        setSelectedId(savedId);
+      }
       setMobileDocumentOpen(false);
     }
   }, [documents, router.isReady, router.query.document]);
 
   useEffect(() => {
-    if (!selectedId && documents[0]?.id) setSelectedId(documents[0].id);
+    if (!selectedId && documents[0]?.id) {
+      setSelectedId(documents[0].id);
+      if (typeof window !== "undefined") sessionStorage.setItem("forest_last_selected_id", documents[0].id);
+    }
   }, [documents, selectedId]);
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      documentItemRefs.current.get(selectedId)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    });
-    return () => cancelAnimationFrame(frame);
+    if (mobileDocumentOpen) return;
+
+    const restoreScroll = () => {
+      let targetScroll = listScrollTopRef.current;
+      if (typeof window !== "undefined") {
+        const savedScroll = sessionStorage.getItem("forest_list_scroll_top");
+        if (savedScroll !== null) targetScroll = Number(savedScroll);
+      }
+
+      if (listRef.current && targetScroll > 0) {
+        listRef.current.scrollTop = targetScroll;
+      }
+    };
+
+    const timer = setTimeout(restoreScroll, 60);
+    return () => clearTimeout(timer);
   }, [mobileDocumentOpen, selectedId, sortOption, visibleDocuments]);
 
   useEffect(() => {
@@ -113,7 +135,17 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
   }, [selectedId]);
 
   const selectDocument = (document: ForestDocument) => {
+    if (listRef.current) {
+      const currentScroll = listRef.current.scrollTop;
+      listScrollTopRef.current = currentScroll;
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("forest_list_scroll_top", String(currentScroll));
+      }
+    }
     setSelectedId(document.id);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("forest_last_selected_id", document.id);
+    }
     setMobileDocumentOpen(true);
     if (router.query.document !== document.id) {
       const destination = { pathname: "/forest", query: { document: document.id } };
@@ -164,7 +196,17 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
           </select>
         </label>
 
-        <nav className="forest-document-list">
+        <nav
+          className="forest-document-list"
+          ref={listRef}
+          onScroll={(e) => {
+            const scrollTop = e.currentTarget.scrollTop;
+            listScrollTopRef.current = scrollTop;
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("forest_list_scroll_top", String(scrollTop));
+            }
+          }}
+        >
           <AnimatePresence initial={false}>
             {visibleDocuments.map((document) => {
               const active = document.id === selectedDocument?.id;
@@ -185,7 +227,6 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.18 }}
                 >
-                  <span className="forest-file-icon"><IonIcon name="document-text-outline" /></span>
                   <span className="forest-file-copy">
                     <strong>{document.title}</strong>
                     <small>
@@ -205,23 +246,8 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
       <section className="forest-preview" aria-live="polite">
         {selectedDocument ? (
           <>
-            <div className="forest-preview-toolbar">
-              <button type="button" className="forest-document-back" onClick={closeMobileDocument} aria-label="문서 목록으로 돌아가기">
-                <IonIcon name="chevron-back-outline" />
-              </button>
-              <div className="forest-breadcrumb">
-                <span><IonIcon name="folder-outline" /> 문서</span>
-                <IonIcon name="chevron-forward-outline" />
-                <strong>{selectedDocument.title}</strong>
-              </div>
-              <a href={`/${selectedDocument.id}`} className="forest-open-document" aria-label="문서 전체 페이지로 열기">
-                <IonIcon name="open-outline" />
-              </a>
-            </div>
-
             <div className="forest-preview-scroll">
               <div className="forest-document-heading">
-                <span className="forest-document-symbol"><IonIcon name="document-text-outline" /></span>
                 <div>
                   <h2>{selectedDocument.title}</h2>
                   <div className="forest-document-dates">

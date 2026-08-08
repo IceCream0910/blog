@@ -89,7 +89,7 @@ export const Header: React.FC = () => {
 
             <AnimatePresence>
                 {showMenu && (
-                    <div className="mobile-menu" role="dialog" aria-modal="true" aria-label="주요 메뉴">
+                    <motion.div className="mobile-menu" role="dialog" aria-modal="true" aria-label="주요 메뉴" exit={{ opacity: 0, transition: { duration: 0.25 } }}>
                         <motion.button
                             type="button"
                             className="mobile-menu-backdrop no-blur"
@@ -98,13 +98,14 @@ export const Header: React.FC = () => {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
+                            transition={{ duration: 0.25 }}
                         />
                         <motion.div
                             className="mobile-menu-panel"
                             style={{ width: '50%', top: "-25px" }}
                             initial={{ opacity: 0, scale: 0.5, x: "-50%", y: -18 }}
                             animate={{ opacity: 1, scale: 0.75, x: "-50%", y: 0 }}
-                            exit={{ opacity: 0, scale: 0.85, x: "-50%", y: 50 }}
+                            exit={{ opacity: 0, scale: 0.5, x: "-50%", y: -18 }}
                             transition={{ type: "spring", stiffness: 380, damping: 32 }}
                         >
                             <nav className="mobile-menu-options" aria-label="모바일 주요 메뉴">
@@ -124,7 +125,7 @@ export const Header: React.FC = () => {
                                 })}
                             </nav>
                         </motion.div>
-                    </div>
+                        </motion.div>
                 )}
             </AnimatePresence>
 
