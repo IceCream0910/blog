@@ -331,9 +331,10 @@ export function PostNarrationPlayer({ pageId, contentRef }: { pageId: string; co
         {error && <small role="status">{error}</small>}
       </div>
       <AnimatePresence>
-        {(
+        {queue.length > 0 && (
           <motion.nav className="post-narration-toolbar" aria-label="게시물 음성 재생" initial={{ opacity: 0, y: 28, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 24, scale: 0.96 }} transition={{ type: "spring", stiffness: 330, damping: 30 }}>
             <span><strong>{blockIndex + 1}</strong><small>/ {queue.length}</small></span>
+
             <button type="button" aria-label="이전 문장" onClick={() => seekSentence(-1)} disabled={blockIndex === 0 && segmentIndex === 0}><IonIcon name="play-skip-back" /></button>
             <button type="button" className="is-playback" aria-label={isPlaying ? "일시정지" : "재생"} aria-pressed={!isPlaying} onClick={togglePlayback}><IonIcon name={isPlaying ? "pause" : "play"} /></button>
             <button type="button" aria-label="다음 문장" onClick={() => seekSentence(1)} disabled={blockIndex === queue.length - 1 && segmentIndex === queue[blockIndex]?.segments.length - 1}><IonIcon name="play-skip-forward" /></button>
