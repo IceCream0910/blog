@@ -5,6 +5,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { Search } from "./Search";
 import IonIcon from '@reacticons/ionicons';
 import { AnimatePresence, motion } from "framer-motion";
+import { useTheme } from "../hooks/useDarkMode";
 
 const navigation = [
     { href: "/recap", label: "월말결산" },
@@ -14,6 +15,8 @@ const navigation = [
 export const Header: React.FC = () => {
     const [showSearch, setShowSearch] = React.useState(false);
     const [showMenu, setShowMenu] = React.useState(false);
+    const [showThemeMenu, setShowThemeMenu] = React.useState(false);
+    const { theme, setTheme } = useTheme();
     const router = useRouter();
 
     useHotkeys('/', event => {
@@ -25,6 +28,7 @@ export const Header: React.FC = () => {
     useHotkeys('esc', () => {
         setShowSearch(false);
         setShowMenu(false);
+        setShowThemeMenu(false);
     }, { enableOnFormTags: true });
 
     const handleCloseSearch = () => {
@@ -33,6 +37,7 @@ export const Header: React.FC = () => {
 
     React.useEffect(() => {
         setShowMenu(false);
+        setShowThemeMenu(false);
     }, [router.asPath]);
 
     React.useEffect(() => {
@@ -44,10 +49,12 @@ export const Header: React.FC = () => {
         };
     }, [showMenu]);
 
+    const currentThemeIcon = theme === 'dark' ? "moon-outline" : theme === 'light' ? "sunny-outline" : "desktop-outline";
+
     return (
         <header
-            className={showMenu ? "header-menu-open" : undefined}
-            style={{ mask: showSearch || showMenu ? 'unset' : 'linear-gradient(to bottom, var(--background) 45%, rgba(0, 0, 0, 0) 100%)' }}>
+            className={showMenu || showThemeMenu ? "header-menu-open" : undefined}
+            style={{ mask: showSearch || showMenu || showThemeMenu ? 'unset' : 'linear-gradient(to bottom, var(--background) 45%, rgba(0, 0, 0, 0) 100%)', WebkitMask: showSearch || showMenu || showThemeMenu ? 'unset' : 'linear-gradient(to bottom, var(--background) 45%, rgba(0, 0, 0, 0) 100%)' }}>
             <div className="container mx-auto px-4 py-8 header-content">
                 <div className="header-leading">
                     <button
@@ -75,7 +82,7 @@ export const Header: React.FC = () => {
                     </nav>
                 </div>
 
-                <div className="flex">
+                <div className="flex items-center gap-1">
                     <button
                         type="button"
                         className="header-search-button"
@@ -84,6 +91,63 @@ export const Header: React.FC = () => {
                     >
                         <IonIcon name="search" style={{ marginTop: '4px' }} />
                     </button>
+
+                    <div className="relative header-theme-wrapper hidden sm:block">
+                        <button
+                            type="button"
+                            className="header-theme-button"
+                            aria-label="테마 설정"
+                            onClick={() => setShowThemeMenu((prev) => !prev)}
+                        >
+                            <IonIcon name={currentThemeIcon} style={{ marginTop: '4px' }} />
+                        </button>
+
+                        <AnimatePresence>
+                            {showThemeMenu && (
+                                <>
+                                    <div
+                                        className="fixed inset-0 z-40"
+                                        onClick={() => setShowThemeMenu(false)}
+                                    />
+                                    <motion.div
+                                        className="header-theme-dropdown"
+                                        initial={{ opacity: 0, scale: 0.95, y: -6 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95, y: -6 }}
+                                        transition={{ duration: 0.15 }}
+                                    >
+                                        <button
+                                            type="button"
+                                            className={`header-theme-option ${theme === 'system' ? 'is-active' : ''}`}
+                                            onClick={() => { setTheme('system'); setShowThemeMenu(false); }}
+                                        >
+                                            <IonIcon name="desktop-outline" />
+                                            <span>시스템</span>
+                                            {theme === 'system' && <IonIcon name="checkmark-outline" style={{ marginLeft: 'auto' }} />}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`header-theme-option ${theme === 'light' ? 'is-active' : ''}`}
+                                            onClick={() => { setTheme('light'); setShowThemeMenu(false); }}
+                                        >
+                                            <IonIcon name="sunny-outline" />
+                                            <span>라이트</span>
+                                            {theme === 'light' && <IonIcon name="checkmark-outline" style={{ marginLeft: 'auto' }} />}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`header-theme-option ${theme === 'dark' ? 'is-active' : ''}`}
+                                            onClick={() => { setTheme('dark'); setShowThemeMenu(false); }}
+                                        >
+                                            <IonIcon name="moon-outline" />
+                                            <span>다크</span>
+                                            {theme === 'dark' && <IonIcon name="checkmark-outline" style={{ marginLeft: 'auto' }} />}
+                                        </button>
+                                    </motion.div>
+                                </>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
             </div>
 
@@ -124,8 +188,34 @@ export const Header: React.FC = () => {
                                     );
                                 })}
                             </nav>
+                            <div className="flex items-center justify-around mt-4 pt-3 border-t border-gray-200 dark:border-gray-800">
+                                <button
+                                    type="button"
+                                    className={`mobile-theme-btn ${theme === 'system' ? 'is-active' : ''}`}
+                                    onClick={() => setTheme('system')}
+                                >
+                                    <IonIcon name="desktop-outline" />
+                                    <span>시스템</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`mobile-theme-btn ${theme === 'light' ? 'is-active' : ''}`}
+                                    onClick={() => setTheme('light')}
+                                >
+                                    <IonIcon name="sunny-outline" />
+                                    <span>라이트</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`mobile-theme-btn ${theme === 'dark' ? 'is-active' : ''}`}
+                                    onClick={() => setTheme('dark')}
+                                >
+                                    <IonIcon name="moon-outline" />
+                                    <span>다크</span>
+                                </button>
+                            </div>
                         </motion.div>
-                        </motion.div>
+                    </motion.div>
                 )}
             </AnimatePresence>
 
