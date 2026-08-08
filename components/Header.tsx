@@ -166,10 +166,10 @@ export const Header: React.FC = () => {
                         />
                         <motion.div
                             className="mobile-menu-panel"
-                            style={{ width: '50%', top: "-25px" }}
-                            initial={{ opacity: 0, scale: 0.5, x: "-50%", y: -18 }}
-                            animate={{ opacity: 1, scale: 0.75, x: "-50%", y: 0 }}
-                            exit={{ opacity: 0, scale: 0.5, x: "-50%", y: -18 }}
+                            style={{ width: '60%', top: "-25px" }}
+                            initial={{ opacity: 0, scale: 0.5, x: "-45%", y: -18 }}
+                            animate={{ opacity: 1, scale: 0.75, x: "-35%", y: 0 }}
+                            exit={{ opacity: 0, scale: 0.5, x: "-35%", y: -18 }}
                             transition={{ type: "spring", stiffness: 380, damping: 32 }}
                         >
                             <nav className="mobile-menu-options" aria-label="모바일 주요 메뉴">
