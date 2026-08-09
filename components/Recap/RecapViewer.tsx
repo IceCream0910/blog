@@ -297,17 +297,14 @@ function MusicContent({ slide, activeIndex, musicById, onToggleAutoplay }: { sli
         })}
       </div>
       <AnimatePresence mode="wait" initial={false}>
-        <motion.button
-          type="button"
+        <motion.div
           key={`${currentIndex}-details`}
           className="recap-music-copy"
-          aria-label="자동 넘김 재생 상태 전환"
-          onClick={onToggleAutoplay}
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -14 }}
           transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
-        >{details}</motion.button>
+        >{details}</motion.div>
       </AnimatePresence>
     </div>
   );
@@ -1278,7 +1275,7 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     const dy = event.clientY - pointerStart.current.y;
     pointerStart.current = null;
     if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)) return changePost(dx < 0 ? 1 : -1);
-    if ((event.target as HTMLElement).closest("a, button, [role='button']")) return;
+    if ((event.target as HTMLElement).closest("a, button, [role='button'], input, select, textarea, .recap-picker, .recap-help-overlay")) return;
     if (Math.abs(dx) < 12 && Math.abs(dy) < 12) {
       const bounds = event.currentTarget.getBoundingClientRect();
       const position = event.clientX - bounds.left;
@@ -1297,6 +1294,9 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
           "--recap-cover-to": coverGradient.to,
           "--recap-cover-foreground": coverTextColor,
         } as React.CSSProperties : undefined}
+        onPointerDown={(event) => { pointerStart.current = { x: event.clientX, y: event.clientY }; }}
+        onPointerUp={onPointerUp}
+        onPointerCancel={() => { pointerStart.current = null; }}
       >
         <AnimatePresence mode="sync" initial={false}>
           {isCover && (
@@ -1333,7 +1333,7 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
             </motion.div>
           )}
         </AnimatePresence>
-        <section className="recap-stage" aria-live="polite" onPointerDown={(event) => { pointerStart.current = { x: event.clientX, y: event.clientY }; }} onPointerUp={onPointerUp} onPointerCancel={() => { pointerStart.current = null; }}>
+        <section className="recap-stage" aria-live="polite">
           <div className="recap-header">
             <div className="recap-progress" aria-label={`${slideIndex + 1} / ${slides.length} 페이지`}>
               {slides.map((slide, index) => (
@@ -1364,7 +1364,11 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
                   </motion.button>
                 )}
               </div>
-              <span className="recap-count">{slideIndex + 1} / {slides.length}</span>
+              <span className="recap-count">{slideIndex + 1} / {slides.length}
+                {!helpOpen && <motion.button layoutId="recap-help-surface" type="button" className="recap-toolbar-help" aria-label="월말결산 탐색 도움말" onClick={openHelp} initial={false} animate={{ borderRadius: 999 }} whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.92 }}><IonIcon name="help-circle-outline" style={{ position: 'relative', top: '1px' }} /></motion.button>}
+
+              </span>
+
             </div>
           </div>
 
@@ -1437,7 +1441,6 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
             <button type="button" className="recap-round-control" aria-label={previousNavigatesSentence ? "이전 문장" : "이전 페이지"} disabled={previousNavigationDisabled} onClick={() => navigateFromToolbar(-1)}><IonIcon name="chevron-back-outline" /></button>
             <button type="button" className="recap-round-control recap-toolbar-autoplay" aria-label={autoplay ? "자동 넘김 일시정지" : "자동 넘김 재생"} aria-pressed={autoplay} onClick={() => setAutoplay((current) => !current)}><IonIcon name={autoplay ? "pause" : "play"} /></button>
             <button type="button" className="recap-round-control" aria-label={nextNavigatesSentence ? "다음 문장" : "다음 페이지"} disabled={nextNavigationDisabled} onClick={() => navigateFromToolbar(1)}><IonIcon name="chevron-forward-outline" /></button>
-            {!helpOpen && <motion.button layoutId="recap-help-surface" type="button" className="recap-round-control recap-toolbar-help" aria-label="월말결산 탐색 도움말" onClick={openHelp} initial={false} animate={{ borderRadius: 999 }} whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.92 }}><IonIcon name="help-outline" /></motion.button>}
           </div>
         </nav>
 

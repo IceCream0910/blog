@@ -318,6 +318,10 @@ body:has(.recap-shell.has-recap-scene) .header-menu-button:hover {
 
 .recap-count {
   justify-self: end;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .recap-shell.has-recap-scene .recap-post-meta span,
@@ -1896,8 +1900,10 @@ body:has(.recap-shell.has-recap-scene) .header-menu-button:hover {
 }
 
 .recap-toolbar-help {
+  font-size: 20px;
+  width: 25px;
+  height: 25px;
   overflow: hidden;
-  border-radius: 999px !important;
 }
 
 .recap-shell.has-recap-scene .recap-toolbar {
@@ -3031,12 +3037,12 @@ body:has(.recap-help-overlay) header {
   }
 
   .recap-post-bubble {
-    width: clamp(76px, 25vw, 150px);
+    width: clamp(76px, 30vw, 150px);
     max-width: none;
   }
 
   .recap-post-bubble-placeholder {
-    width: clamp(76px, 25vw, 150px);
+    width: clamp(76px, 30vw, 150px);
     height: 40px;
   }
 
