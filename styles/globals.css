@@ -98,7 +98,7 @@
   --category-text-2: #07141b;
   --category-text-3: #7934ab;
   --date-text: #6b7280;
-  --max-width: 800px;
+  --max-width: 100%;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -121,7 +121,6 @@
     --category-text-2: #78cbfa;
     --category-text-3: #a38af5;
     --date-text: #9ca3af;
-    --max-width: 800px;
   }
 }
 
@@ -144,7 +143,6 @@
   --category-text-2: #78cbfa;
   --category-text-3: #a38af5;
   --date-text: #9ca3af;
-  --max-width: 800px;
 }
 
 :root.light, html.light {
@@ -166,7 +164,6 @@
   --category-text-2: #07141b;
   --category-text-3: #7934ab;
   --date-text: #6b7280;
-  --max-width: 800px;
 }
 
 body {
@@ -441,16 +438,40 @@ header.header-menu-open {
   }
 }
 
-@media (min-width: 1200px) {
-  :root {
-    --max-width: 1000px;
+@media (min-width: 640px) {
+  :root, :root.dark, :root.light {
+    --max-width: 640px;
   }
 }
 
-@media (min-width: 1400px) {
-  :root {
-    --max-width: 1200px;
+@media (min-width: 768px) {
+  :root, :root.dark, :root.light {
+    --max-width: 768px;
   }
+}
+
+@media (min-width: 1024px) {
+  :root, :root.dark, :root.light {
+    --max-width: 1024px;
+  }
+}
+
+@media (min-width: 1280px) {
+  :root, :root.dark, :root.light {
+    --max-width: 1280px;
+  }
+}
+
+@media (min-width: 1536px) {
+  :root, :root.dark, :root.light {
+    --max-width: 1536px;
+  }
+}
+
+.page-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 h1 {
