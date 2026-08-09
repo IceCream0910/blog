@@ -745,6 +745,9 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     : [], [soundEnabled, narrationQueue, narrationQueueIndex]);
   const isCover = activeSlide.type === "cover";
   const coverReady = Boolean(loadedPost) || loadError;
+  const isFullyLoaded = useMemo(() => {
+    return (Boolean(loadedPost) && (!post?.sections?.length || bodySlidesReady)) || loadError;
+  }, [loadedPost, post?.sections?.length, bodySlidesReady, loadError]);
   const introUrl = useMemo(() => recapIntroUrl(post?.id), [post?.id]);
   const coverGradient = useMemo(() => getTextGradient(post?.title || "recap"), [post?.title]);
   const coverTextColor = useMemo(() => getGradientTextColor(coverGradient), [coverGradient]);
@@ -1249,12 +1252,19 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
           setMusicFadingOut(true);
         }
       }
-      if (progress >= 1) changeSlide(1);
-      else frame = requestAnimationFrame(tick);
+      if (progress >= 1) {
+        if (activeSlide.type === "cover" && !isFullyLoaded) {
+          progressRef.current = 1;
+          progressMotion.set(1);
+          frame = requestAnimationFrame(tick);
+          return;
+        }
+        changeSlide(1);
+      } else frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [activeSlide, autoplay, changeSlide, coverReady, documentVisible, helpOpen, narrationQueue.length, nextSlideStartsBody, post?.id, post?.recordMap, postPickerOpen, sectionPickerOpen, soundEnabled, timerEpoch]);
+  }, [activeSlide, autoplay, changeSlide, coverReady, documentVisible, helpOpen, isFullyLoaded, narrationQueue.length, nextSlideStartsBody, post?.id, post?.recordMap, postPickerOpen, sectionPickerOpen, soundEnabled, timerEpoch]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1335,26 +1345,51 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
         </AnimatePresence>
         <section className="recap-stage" aria-live="polite">
           <div className="recap-header">
-            <div className="recap-progress" aria-label={`${slideIndex + 1} / ${slides.length} 페이지`}>
-              {slides.map((slide, index) => (
-                <button
-                  type="button"
-                  className="recap-progress-track"
-                  key={`${slide.type}-${slide.type === "cover" ? post.id : slide.type === "body" ? `${slide.sectionId}-${slide.blockIds.join("-")}` : slide.type === "property" ? slide.key : "empty"}`}
-                  aria-label={`${index + 1}페이지로 이동: ${slide.title}`}
-                  aria-current={index === slideIndex ? "step" : undefined}
-                  onClick={() => {
-                    progressRef.current = 0;
-                    progressMotion.set(0);
-                    setTimerEpoch((current) => current + 1);
-                    setDirection(index >= slideIndex ? 1 : -1);
-                    setSlideIndex(index);
-                  }}
-                >
-                  <motion.i style={{ scaleX: index < slideIndex ? 1 : index === slideIndex ? progressMotion : 0 }} />
-                </button>
-              ))}
-            </div>
+            <motion.div
+              layout
+              className="recap-progress"
+              aria-label={`${isCover ? 1 : slideIndex + 1} / ${isCover ? 1 : slides.length} 페이지`}
+            >
+              <AnimatePresence initial={false}>
+                {(isCover ? slides.slice(0, 1) : slides).map((slide, index) => {
+                  const realIndex = isCover ? 0 : index;
+                  const key = slide.type === "cover"
+                    ? `cover-${post.id}`
+                    : slide.type === "body"
+                    ? `body-${slide.sectionId}-${slide.blockIds.join("-")}`
+                    : slide.type === "property"
+                    ? `prop-${slide.key}`
+                    : `empty-${index}`;
+                  return (
+                    <motion.button
+                      layout
+                      initial={{ opacity: 0, scaleX: 0.5 }}
+                      animate={{ opacity: 1, scaleX: 1 }}
+                      exit={{ opacity: 0, scaleX: 0.5 }}
+                      transition={{
+                        layout: { type: "spring", stiffness: 280, damping: 28 },
+                        opacity: { duration: 0.28, ease: "easeOut" },
+                        scaleX: { duration: 0.28, ease: "easeOut" },
+                      }}
+                      type="button"
+                      className="recap-progress-track"
+                      key={key}
+                      aria-label={`${realIndex + 1}페이지로 이동: ${slide.title}`}
+                      aria-current={realIndex === slideIndex ? "step" : undefined}
+                      onClick={() => {
+                        progressRef.current = 0;
+                        progressMotion.set(0);
+                        setTimerEpoch((current) => current + 1);
+                        setDirection(realIndex >= slideIndex ? 1 : -1);
+                        setSlideIndex(realIndex);
+                      }}
+                    >
+                      <motion.i style={{ scaleX: realIndex < slideIndex ? 1 : realIndex === slideIndex ? progressMotion : 0 }} />
+                    </motion.button>
+                  );
+                })}
+              </AnimatePresence>
+            </motion.div>
             <div className="recap-meta">
               <div className="recap-post-meta"><strong>{post.title}</strong></div>
               <div className="recap-section-selector-slot">
@@ -1364,11 +1399,10 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
                   </motion.button>
                 )}
               </div>
-              <span className="recap-count">{slideIndex + 1} / {slides.length}
+              <span className="recap-count">
+                {!isCover && `${slideIndex + 1} / ${slides.length}`}
                 {!helpOpen && <motion.button layoutId="recap-help-surface" type="button" className="recap-toolbar-help" aria-label="월말결산 탐색 도움말" onClick={openHelp} initial={false} animate={{ borderRadius: 999 }} whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.92 }}><IonIcon name="help-circle-outline" style={{ position: 'relative', top: '1px' }} /></motion.button>}
-
               </span>
-
             </div>
           </div>
 

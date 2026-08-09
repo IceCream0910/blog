@@ -124,8 +124,10 @@ export function PostNarrationPlayer({ pageId, contentRef }: { pageId: string; co
   const queueRef = useRef<QueueItem[]>([]);
   const blockIndexRef = useRef(0);
   const segmentIndexRef = useRef(0);
+  const desiredPlayingRef = useRef(false);
 
   const stop = useCallback(() => {
+    desiredPlayingRef.current = false;
     cancelAnimationFrame(frameRef.current);
     audioRef.current?.pause();
     if (audioRef.current) audioRef.current.src = "";
@@ -182,14 +184,31 @@ export function PostNarrationPlayer({ pageId, contentRef }: { pageId: string; co
     setSegmentIndex(targetSegment);
     segmentIndexRef.current = targetSegment;
     audio.preload = "auto";
+
+    if (shouldPlay) {
+      desiredPlayingRef.current = true;
+      setIsPlaying(true);
+    } else {
+      desiredPlayingRef.current = false;
+      setIsPlaying(false);
+    }
+
     const seek = () => {
       audio.currentTime = item.segments[targetSegment]?.start || 0;
       paint(audio.currentTime);
       item.element.scrollIntoView({ behavior: "smooth", block: "center" });
-      if (shouldPlay) audio.play().catch(() => { setError("오디오 재생이 차단되었습니다."); stop(); });
+      if (shouldPlay) {
+        audio.play().catch(() => {
+          desiredPlayingRef.current = false;
+          setIsPlaying(false);
+          setError("오디오 재생이 차단되었습니다.");
+          stop();
+        });
+      }
     };
     audio.ontimeupdate = () => paint(audio.currentTime);
     audio.onplay = () => {
+      desiredPlayingRef.current = true;
       setIsPlaying(true);
       const tick = () => {
         paint(audio.currentTime);
@@ -199,13 +218,17 @@ export function PostNarrationPlayer({ pageId, contentRef }: { pageId: string; co
       frameRef.current = requestAnimationFrame(tick);
     };
     audio.onpause = () => {
+      if (desiredPlayingRef.current) return;
       cancelAnimationFrame(frameRef.current);
       setIsPlaying(false);
     };
     audio.onended = () => {
       cancelAnimationFrame(frameRef.current);
-      if (index + 1 < queueRef.current.length) playBlock(index + 1, 0);
-      else stop();
+      if (index + 1 < queueRef.current.length) {
+        playBlock(index + 1, 0, true);
+      } else {
+        stop();
+      }
     };
     if (blockChanged) {
       audio.dataset.narrationBlockId = item.blockId;
@@ -270,7 +293,7 @@ export function PostNarrationPlayer({ pageId, contentRef }: { pageId: string; co
     const curBlock = blockIndexRef.current;
     const curSeg = segmentIndexRef.current;
     const currentTime = audioRef.current?.currentTime ?? 0;
-    const shouldPlay = !(audioRef.current?.paused ?? true);
+    const shouldPlay = desiredPlayingRef.current;
 
     let curSentenceIdx = -1;
     for (let i = 0; i < sentenceStarts.length; i++) {
@@ -313,9 +336,17 @@ export function PostNarrationPlayer({ pageId, contentRef }: { pageId: string; co
     const audio = audioRef.current;
     if (!audio) return;
     if (audio.paused) {
-      audio.play().catch(() => setError("오디오 재생이 차단되었습니다."));
+      desiredPlayingRef.current = true;
+      setIsPlaying(true);
+      audio.play().catch(() => {
+        desiredPlayingRef.current = false;
+        setIsPlaying(false);
+        setError("오디오 재생이 차단되었습니다.");
+      });
     } else {
+      desiredPlayingRef.current = false;
       audio.pause();
+      setIsPlaying(false);
     }
   }, []);
 
