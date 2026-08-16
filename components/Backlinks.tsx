@@ -1,95 +1,67 @@
-import * as React from 'react'
-import styles from './styles.module.css'
+import * as React from "react";
+import Link from "next/link";
+import IonIcon from "@reacticons/ionicons";
+import { KnowledgeGraph, type GraphData } from "./Graph/KnowledgeGraph";
+import { compactNotionId, resolveBacklinkSources } from "../utils/backlink-graph";
+import { motion } from "framer-motion";
 
 interface BacklinksProps {
-  currentId: string
+  currentId: string;
+  currentTitle?: string;
 }
 
-export const Backlinks: React.FC<BacklinksProps> = ({ currentId }) => {
-  const [backlinks, setBacklinks] = React.useState(null)
-  const [map, setMap] = React.useState(null)
-  const [list, setList] = React.useState(null)
+export const Backlinks: React.FC<BacklinksProps> = ({ currentId, currentTitle = "현재 문서" }) => {
+  const [sources, setSources] = React.useState<ReturnType<typeof resolveBacklinkSources>>([]);
 
   React.useEffect(() => {
-    fetch('/api/backlink', {
-      method: 'POST',
+    const controller = new AbortController();
+    setSources([]);
+    fetch("/api/backlink", {
+      method: "POST",
       body: JSON.stringify({ currentId }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
     })
-      .then((res) => res.json())
-      .then((data) => {
-        setBacklinks(data.backlinks)
-        setMap(data.recordMap);
-      })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("backlink request failed")))
+      .then((payload) => setSources(resolveBacklinkSources(payload).filter(
+        (source) => compactNotionId(source.id) !== compactNotionId(currentId),
+      )))
+      .catch((error) => {
+        if (error.name !== "AbortError") setSources([]);
+      });
+    return () => controller.abort();
   }, [currentId]);
 
-  React.useEffect(() => {
-    if (!backlinks || !map) return;
-
-    const promises = backlinks.map(backlink =>
-      fetch('/api/title-notion', {
-        method: 'POST',
-        body: JSON.stringify({
-          block: map.block[backlink.mentioned_from.block_id].value,
-          recordMap: map
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }).then(res => res.json())
-    );
-
-    Promise.all(promises)
-      .then(results => {
-        // 중복 제거
-        const uniqueResults = results.reduce((acc, current) => {
-          const x = acc.find(item => item.title === current.title);
-          if (!x) {
-            return acc.concat([current]);
-          } else {
-            return acc;
-          }
-        }, []);
-
-        uniqueResults.sort((a, b) => {
-          if (a.title > b.title) return -1;
-          if (a.title < b.title) return 1;
-          return 0;
-        });
-
-        setList(uniqueResults);
-      });
-
-  }, [backlinks, map]);
-
-  if (!backlinks || !map || !list || list.length === 0) {
-    return null
-  }
+  const graph = React.useMemo<GraphData>(() => ({
+    nodes: [
+      { id: currentId, title: currentTitle, href: `/${currentId}`, kind: "current" },
+      ...sources.map((source) => ({ ...source, kind: "reference" as const })),
+    ],
+    links: sources.map((source) => ({ source: source.id, target: currentId })),
+  }), [currentId, currentTitle, sources]);
 
   return (
-    <div className='backlinks' style={{
-      width: '100%',
-      backgroundColor: 'var(--card-bg)',
-      border: '1px solid var(--fg-color-1)',
-      padding: '1em',
-      borderRadius: '15px',
-      marginTop: '1em',
-    }}>
-      <b>이 글이 링크된 다른 문서들</b>
-      <ul style={{ paddingLeft: '10px', fontSize: '16px', marginTop: '5px', marginBottom: 0 }}>
-        {list.map((item, index) => (
-          <li key={index} style={{ listStyle: 'inside', margin: 0 }}>
-            <a className='no-underline hover:underline'
-              style={{ color: 'var(--tag-text)' }}
-              href={`/${item.link}`}
-            >
-              {item.title}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
+    <section className="backlink-graph" aria-labelledby={`backlink-title-${compactNotionId(currentId)}`}>
+      <div className="backlink-graph-heading">
+        <div>
+          <b id={`backlink-title-${compactNotionId(currentId)}`}>이 문서를 가리키는 연결</b>
+          <small>{sources.length ? `${sources.length}개의 문서가 연결되어 있습니다.` : "아직 연결된 문서가 없습니다."}</small>
+        </div>
+        <Link href={`/graph?focus=${encodeURIComponent(currentId)}`} className="no-underline">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="px-4 py-2 text-xs rounded-xl hover:bg-blue-600 transition-colors float-right"
+            style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary)' }}
+            type="submit"
+          >
+            전체 그래프
+            <IonIcon name="arrow-forward-outline" style={{ position: 'relative', top: '2px' }} />
+          </motion.button>
+
+        </Link>
+      </div>
+      <KnowledgeGraph data={graph} activeId={currentId} variant="compact" />
+    </section>
+  );
+};
