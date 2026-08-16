@@ -17,4 +17,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-export const config = { maxDuration: 120 };
+export const config = { maxDuration: 60 };
