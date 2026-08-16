@@ -3,10 +3,10 @@ import "../styles/globals.css";
 import '../styles/notion.css'
 import '../styles/recap.css'
 import '../styles/forest.css'
+import '../styles/graph.css'
 import '../styles/post-narration.css'
 import { Header } from "../components/Header";
 import { useRouter } from 'next/router';
-import { SliderTabBar } from "../components/SliderTabBar";
 import { Spinner } from "../components/Spinner";
 import { motion } from 'framer-motion';
 
@@ -32,7 +32,9 @@ export default function App({ Component, pageProps }) {
   }, []);
 
   useEffect(() => {
-    const handleStart = () => setLoading(true);
+    const handleStart = (_url, options = {}) => {
+      if (!options.shallow) setLoading(true);
+    };
     const handleComplete = () => {
       setLoading(false);
       setTitle('');
@@ -83,11 +85,12 @@ export default function App({ Component, pageProps }) {
         ) : (
           <Spinner />
         ) : (
-          <Component {...pageProps} key={router.asPath} />
+          <Component
+            {...pageProps}
+            key={router.pathname === '/forest' ? router.pathname : router.asPath}
+          />
         )}
-        {router.pathname == '/graph' ?
-          <SliderTabBar /> :
-          <Header />}
+        {router.pathname !== '/graph' && <Header />}
       </currentPostContext.Provider>
     </ThemeProvider>
   );

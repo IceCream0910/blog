@@ -1,18 +1,11 @@
-import dynamic from 'next/dynamic'
 import { NotionAPI } from 'notion-client'
 import { NotionRenderer } from '../../packages/notionx'
 import 'prismjs/themes/prism-tomorrow.css'
 import 'katex/dist/katex.min.css'
 import { useEffect, useState } from 'react'
 import { calculateReadingTime } from '../../utils/readingTime'
-import Comments from '../../components/Comments'
-import { Backlinks } from '../../components/Backlinks'
-import { PageHead } from '../../components/PageHead'
-import { motion } from 'framer-motion';
-import { useRouter } from 'next/router';
 import { Code, Collection, Equation, Pdf, Modal } from '../../utils/notion-components'
 import { getDatabase } from "../../utils/get-database"
-import IonIcon from '@reacticons/ionicons'
 
 export async function getStaticPaths() {
     try {

@@ -199,7 +199,7 @@ export default function Page({ pageId, recordMap, summary }) {
                 <PostActions title={title} pageId={pageId} />
 
                 <motion.div variants={itemVariants}>
-                    <Backlinks currentId={pageId} />
+                    <Backlinks currentId={pageId} currentTitle={title} />
                 </motion.div>
                 <motion.div variants={itemVariants}>
                     <Comments pageId={pageId} />

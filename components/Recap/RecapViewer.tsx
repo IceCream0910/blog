@@ -184,7 +184,7 @@ function CoverContent({ post, animationReady }: { post: RecapPost; animationRead
       className="recap-cover"
       initial="hidden"
       animate={animationReady ? "visible" : "hidden"}
-      variants={{ visible: { transition: { delayChildren: 0.18, staggerChildren: 0.52 } } }}
+      variants={{ visible: { transition: { delayChildren: 0, staggerChildren: 0.44 } } }}
     >
       <motion.span className="recap-cover-eyebrow" variants={copyVariants} transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}>
         MONTHLY RECAP
@@ -195,6 +195,9 @@ function CoverContent({ post, animationReady }: { post: RecapPost; animationRead
       <motion.p variants={copyVariants} transition={{ duration: 0.68, ease: [0.22, 1, 0.36, 1] }}>
         {month}의 일들과 생각을 모아봤어요.
       </motion.p>
+      <motion.small className="recap-cover-ai-notice" variants={copyVariants} transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}>
+        모든 본문의 음성은 AI로 생성되었습니다.
+      </motion.small>
     </motion.div>
   );
 }
@@ -1356,10 +1359,10 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
                   const key = slide.type === "cover"
                     ? `cover-${post.id}`
                     : slide.type === "body"
-                    ? `body-${slide.sectionId}-${slide.blockIds.join("-")}`
-                    : slide.type === "property"
-                    ? `prop-${slide.key}`
-                    : `empty-${index}`;
+                      ? `body-${slide.sectionId}-${slide.blockIds.join("-")}`
+                      : slide.type === "property"
+                        ? `prop-${slide.key}`
+                        : `empty-${index}`;
                   return (
                     <motion.button
                       layout

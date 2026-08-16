@@ -1,10 +1,12 @@
 import IonIcon from "@reacticons/ionicons";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { NotionRenderer } from "../../packages/notionx";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import { Code, Collection, Equation, Modal } from "../../utils/notion-components";
+import { Backlinks } from "../Backlinks";
+import Comments from "../Comments";
 
 type ForestDocument = {
   id: string;
@@ -20,6 +22,7 @@ type ForestExplorerProps = {
 type SortOption = "edited-desc" | "edited-asc" | "created-desc" | "title-asc";
 
 const rendererComponents = { Code, Collection, Equation, Modal };
+const useClientLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 function formatEditedTime(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -36,15 +39,19 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
   const [query, setQuery] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("edited-desc");
   const [recordMap, setRecordMap] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [recordMapDocumentId, setRecordMapDocumentId] = useState("");
   const [error, setError] = useState("");
   const [mobileDocumentOpen, setMobileDocumentOpen] = useState(false);
+  const [selectionInitialized, setSelectionInitialized] = useState(false);
   const cacheRef = useRef(new Map<string, any>());
   const documentItemRefs = useRef(new Map<string, HTMLButtonElement>());
   const listRef = useRef<HTMLElement | null>(null);
   const listScrollTopRef = useRef<number>(0);
+  const previewScrollRef = useRef<HTMLDivElement | null>(null);
+  const selectionScrollModeRef = useRef<"preserve" | "reveal">("reveal");
 
   const selectedDocument = documents.find((document) => document.id === selectedId) || documents[0];
+  const renderedDocument = documents.find((document) => document.id === recordMapDocumentId) || selectedDocument;
   const visibleDocuments = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("ko-KR");
     const filtered = normalized
@@ -73,6 +80,7 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
       }
       setMobileDocumentOpen(false);
     }
+    setSelectionInitialized(true);
   }, [documents, router.isReady, router.query.document]);
 
   useEffect(() => {
@@ -82,38 +90,53 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
     }
   }, [documents, selectedId]);
 
-  useEffect(() => {
-    if (mobileDocumentOpen) return;
+  useClientLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
 
-    const restoreScroll = () => {
-      let targetScroll = listScrollTopRef.current;
-      if (typeof window !== "undefined") {
-        const savedScroll = sessionStorage.getItem("forest_list_scroll_top");
-        if (savedScroll !== null) targetScroll = Number(savedScroll);
-      }
+    const savedScroll = sessionStorage.getItem("forest_list_scroll_top");
+    const parsedScroll = savedScroll === null ? listScrollTopRef.current : Number(savedScroll);
+    const targetScroll = Number.isFinite(parsedScroll) ? parsedScroll : 0;
+    listScrollTopRef.current = targetScroll;
+    list.scrollTop = targetScroll;
 
-      if (listRef.current && targetScroll > 0) {
-        listRef.current.scrollTop = targetScroll;
-      }
-    };
+    // Wait until the URL/session selection is known before deciding whether the
+    // active item needs to be revealed. This keeps the saved position on hydration.
+    if (!selectionInitialized) return;
 
-    const timer = setTimeout(restoreScroll, 60);
-    return () => clearTimeout(timer);
-  }, [mobileDocumentOpen, selectedId, sortOption, visibleDocuments]);
+    if (selectionScrollModeRef.current === "preserve") {
+      // Selecting an item must not let routing, focus, or layout animation move the list.
+      selectionScrollModeRef.current = "reveal";
+      return;
+    }
+
+    const activeItem = documentItemRefs.current.get(selectedId);
+    if (!activeItem) return;
+
+    const listRect = list.getBoundingClientRect();
+    const itemRect = activeItem.getBoundingClientRect();
+    if (itemRect.top < listRect.top) {
+      list.scrollTop -= listRect.top - itemRect.top;
+    } else if (itemRect.bottom > listRect.bottom) {
+      list.scrollTop += itemRect.bottom - listRect.bottom;
+    }
+
+    listScrollTopRef.current = list.scrollTop;
+    sessionStorage.setItem("forest_list_scroll_top", String(list.scrollTop));
+  }, [mobileDocumentOpen, selectedId, selectionInitialized, sortOption, visibleDocuments]);
 
   useEffect(() => {
     if (!selectedId) return;
     const cached = cacheRef.current.get(selectedId);
     if (cached) {
       setRecordMap(cached);
+      setRecordMapDocumentId(selectedId);
       setError("");
       return;
     }
 
     const controller = new AbortController();
-    setLoading(true);
     setError("");
-    setRecordMap(null);
 
     fetch(`/api/forest/${selectedId}`, { signal: controller.signal })
       .then(async (response) => {
@@ -123,16 +146,20 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
       .then((nextRecordMap) => {
         cacheRef.current.set(selectedId, nextRecordMap);
         setRecordMap(nextRecordMap);
+        setRecordMapDocumentId(selectedId);
       })
       .catch((fetchError) => {
         if (fetchError.name !== "AbortError") setError(fetchError.message || "문서를 불러오지 못했습니다.");
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
       });
 
     return () => controller.abort();
   }, [selectedId]);
+
+  useClientLayoutEffect(() => {
+    if (recordMapDocumentId === selectedId && previewScrollRef.current) {
+      previewScrollRef.current.scrollTop = 0;
+    }
+  }, [recordMapDocumentId, selectedId]);
 
   const selectDocument = (document: ForestDocument) => {
     if (listRef.current) {
@@ -142,6 +169,7 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
         sessionStorage.setItem("forest_list_scroll_top", String(currentScroll));
       }
     }
+    selectionScrollModeRef.current = "preserve";
     setSelectedId(document.id);
     if (typeof window !== "undefined") {
       sessionStorage.setItem("forest_last_selected_id", document.id);
@@ -158,8 +186,14 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
   };
 
   const closeMobileDocument = () => {
+    selectionScrollModeRef.current = "preserve";
     setMobileDocumentOpen(false);
     router.replace("/forest", undefined, { shallow: true, scroll: false });
+
+    requestAnimationFrame(() => {
+      if (listRef.current) listRef.current.scrollTop = listScrollTopRef.current;
+      documentItemRefs.current.get(selectedId)?.focus({ preventScroll: true });
+    });
   };
 
   return (
@@ -244,24 +278,29 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
       </aside>
 
       <section className="forest-preview" aria-live="polite">
-        {selectedDocument ? (
+        {renderedDocument ? (
           <>
-            <div className="forest-preview-scroll">
+            <div className="forest-preview-toolbar">
+              <button
+                type="button"
+                className="forest-document-back"
+                onClick={closeMobileDocument}
+                aria-label="문서 목록으로 돌아가기"
+              >
+                <IonIcon name="arrow-back-outline" />
+              </button>
+            </div>
+            <div className="forest-preview-scroll" ref={previewScrollRef}>
               <div className="forest-document-heading">
                 <div>
-                  <h2>{selectedDocument.title}</h2>
+                  <h2>{renderedDocument.title}</h2>
                   <div className="forest-document-dates">
-                    <p><IonIcon name="add-circle-outline" /> {formatEditedTime(selectedDocument.createdTime)} 생성</p>
-                    <p><IonIcon name="time-outline" /> {formatEditedTime(selectedDocument.lastEditedTime)} 수정</p>
+                    <p><IonIcon name="add-circle-outline" /> {formatEditedTime(renderedDocument.createdTime)} 생성</p>
+                    <p><IonIcon name="time-outline" /> {formatEditedTime(renderedDocument.lastEditedTime)} 수정</p>
                   </div>
                 </div>
               </div>
 
-              {loading && (
-                <div className="forest-document-loading" aria-label="문서 불러오는 중">
-                  <span /><span /><span />
-                </div>
-              )}
               {error && (
                 <div className="forest-document-error">
                   <IonIcon name="cloud-offline-outline" />
@@ -269,8 +308,9 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
                   <button
                     type="button"
                     onClick={() => {
+                      const retryId = selectedId;
                       setSelectedId("");
-                      setTimeout(() => setSelectedId(selectedDocument.id), 0);
+                      setTimeout(() => setSelectedId(retryId), 0);
                     }}
                   >
                     다시 시도
@@ -278,12 +318,9 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
                 </div>
               )}
               {recordMap && (
-                <motion.article
-                  key={selectedDocument.id}
+                <article
+                  key={recordMapDocumentId}
                   className="forest-notion-document"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.28 }}
                 >
                   <NotionRenderer
                     recordMap={recordMap}
@@ -293,7 +330,9 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
                     showTableOfContents={false}
                     previewImages={!!recordMap.preview_images}
                   />
-                </motion.article>
+                  <Backlinks key={recordMapDocumentId} currentId={recordMapDocumentId} currentTitle={renderedDocument.title} />
+                  <Comments pageId={recordMapDocumentId} />
+                </article>
               )}
             </div>
           </>
