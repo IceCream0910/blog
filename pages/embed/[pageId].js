@@ -234,9 +234,19 @@ export default function Page({ pageId, recordMap }) {
             />
             <style jsx global>{`
             html, body {
-                background-color: var(--background) !important;
+                background: transparent !important;
+                background-color: transparent !important;
                 color: var(--foreground) !important;
                 overflow: hidden !important;
+            }
+
+            .custom-content,
+            .notion,
+            .notion-page,
+            .notion-page-content,
+            .notion-page-content-inner {
+                background: transparent !important;
+                background-color: transparent !important;
             }
 
     header, aside {
