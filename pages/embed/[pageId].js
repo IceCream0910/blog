@@ -143,14 +143,41 @@ export default function Page({ pageId, recordMap }) {
         const time = calculateReadingTime(text);
         setReadTime(time);
 
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        setDarkmode(mediaQuery.matches);
+        const checkDarkMode = () => {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const queryTheme = params.get('theme') || params.get('mode');
+                const queryDark = params.get('dark');
+                if (queryTheme === 'dark' || queryDark === 'true' || queryDark === '1') {
+                    return true;
+                }
+                if (queryTheme === 'light' || queryDark === 'false' || queryDark === '0') {
+                    return false;
+                }
+            } catch (e) {}
+            return window.matchMedia('(prefers-color-scheme: dark)').matches;
+        };
 
-        const handleColorSchemeChange = (e) => {
-            setDarkmode(e.matches);
+        const isDark = checkDarkMode();
+        setDarkmode(isDark);
+
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleColorSchemeChange = () => {
+            setDarkmode(checkDarkMode());
         };
 
         mediaQuery.addEventListener('change', handleColorSchemeChange);
+
+        const handleMessage = (event) => {
+            if (!event.data) return;
+            const data = event.data;
+            if (data.theme === 'dark' || data === 'dark' || data.darkMode === true || data.mode === 'dark') {
+                setDarkmode(true);
+            } else if (data.theme === 'light' || data === 'light' || data.darkMode === false || data.mode === 'light') {
+                setDarkmode(false);
+            }
+        };
+        window.addEventListener('message', handleMessage);
 
         const contentContainer = document.querySelector(".custom-content");
         if (contentContainer) {
@@ -172,9 +199,23 @@ export default function Page({ pageId, recordMap }) {
 
         return () => {
             mediaQuery.removeEventListener('change', handleColorSchemeChange);
+            window.removeEventListener('message', handleMessage);
             clearInterval(intervalId);
         };
     }, []);
+
+    useEffect(() => {
+        const root = document.documentElement;
+        if (darkmode) {
+            root.classList.add('dark');
+            root.classList.remove('light');
+            root.style.colorScheme = 'dark';
+        } else {
+            root.classList.add('light');
+            root.classList.remove('dark');
+            root.style.colorScheme = 'light';
+        }
+    }, [darkmode]);
 
     return (
         <div className="custom-content">
@@ -193,7 +234,8 @@ export default function Page({ pageId, recordMap }) {
             />
             <style jsx global>{`
             html, body {
-                background: none;
+                background-color: var(--background) !important;
+                color: var(--foreground) !important;
                 overflow: hidden !important;
             }
 
