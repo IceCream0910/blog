@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import IonIcon from "@reacticons/ionicons";
-import { AnimatePresence, LayoutGroup, motion, useMotionValue, useSpring, useTransform, type MotionValue } from "framer-motion";
+import { AnimatePresence, LayoutGroup, motion, useMotionValue, useTransform, type MotionValue } from "framer-motion";
 import { NotionRenderer } from "../../packages/notionx";
 import { Code, Collection, Equation, Modal } from "../../utils/notion-components";
 import { useDarkMode } from "../../hooks/useDarkMode";
@@ -39,6 +39,7 @@ type BodySlide = {
   continuation: boolean;
   layout: BodyLayout;
   visualMaxHeight: number;
+  textMaxHeight: number;
 };
 type EmptySlide = { type: "empty"; title: string };
 type RecapSlide = CoverSlide | PropertySlide | BodySlide | EmptySlide;
@@ -49,7 +50,8 @@ const propertyMeta: Record<string, { title: string; icon: string; eyebrow: strin
   reading: { title: "읽은 책", icon: "book-outline", eyebrow: "MONTHLY BOOKSHELF", unit: "권" },
 };
 const rendererComponents = { Code, Collection, Equation, Modal };
-const MUSIC_FADE_OUT_LEAD_MS = 2600;
+const MUSIC_BODY_FADE_MS = 4000;
+const VISUAL_BLOCK_TYPES = new Set(["image", "video", "embed", "bookmark", "file", "pdf", "audio"]);
 
 function safeUrl(value?: string) {
   if (!value) return undefined;
@@ -173,7 +175,7 @@ function getSlideDuration(slide: RecapSlide, post: RecapPost, soundEnabled: bool
   return 5000;
 }
 
-function CoverContent({ post, animationReady }: { post: RecapPost; animationReady: boolean }) {
+function CoverContent({ post }: { post: RecapPost }) {
   const month = new Date(post.date).toLocaleDateString("ko-KR", { year: "numeric", month: "long" });
   const copyVariants = {
     hidden: { opacity: 0, y: 18, filter: "blur(5px)" },
@@ -183,7 +185,7 @@ function CoverContent({ post, animationReady }: { post: RecapPost; animationRead
     <motion.div
       className="recap-cover"
       initial="hidden"
-      animate={animationReady ? "visible" : "hidden"}
+      animate="visible"
       variants={{ visible: { transition: { delayChildren: 0, staggerChildren: 0.44 } } }}
     >
       <motion.span className="recap-cover-eyebrow" variants={copyVariants} transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}>
@@ -440,11 +442,7 @@ function ActiveNarrationSegment({ segment, narrationTime }: { segment: Narration
   const progress = useTransform(narrationTime, (time) => Math.max(0, Math.min(1, (time + KARAOKE_LEAD_SECONDS - segment.start) / duration)));
   const backgroundPosition = useTransform(progress, (value) => `${100 - value * 100}% 0%`);
   const opacity = useTransform(progress, [0, 0.08, 1], [0.32, 1, 1]);
-  const emphasisTarget = useTransform(progress, [0, 0.14, 0.82, 1], [0, 1, 1, 0]);
-  const emphasis = useSpring(emphasisTarget, { stiffness: 180, damping: 24, mass: 0.58 });
-  const y = useTransform(emphasis, [0, 1], [0, -1]);
-  const scale = useTransform(emphasis, [0, 1], [1, 1.025]);
-  return <motion.span className="is-live" style={{ backgroundPosition, opacity, y, scale }}>{segment.text}</motion.span>;
+  return <motion.span className="is-live" style={{ backgroundPosition, opacity }}>{segment.text}</motion.span>;
 }
 
 function NarratedText({ narration, sourceText, state, narrationTime }: { narration: NarrationBlock; sourceText: string; state: "past" | "active" | "upcoming"; narrationTime: MotionValue<number> }) {
@@ -461,45 +459,70 @@ function NarratedText({ narration, sourceText, state, narrationTime }: { narrati
 }
 
 function BodyContent({ slide, post, darkMode, direction, narrationEnabled, narratingBlockId, pastNarrationBlockIds, narrationTime }: { slide: BodySlide; post: RecapPost; darkMode: boolean; direction: number; narrationEnabled: boolean; narratingBlockId?: string; pastNarrationBlockIds: string[]; narrationTime: MotionValue<number> }) {
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const visualIds = slide.blockIds.filter((id) => VISUAL_BLOCK_TYPES.has(getBlockValue(post.recordMap, id)?.type));
+  const textIds = slide.blockIds.filter((id) => !visualIds.includes(id));
+  const mixed = visualIds.length > 0 && textIds.length > 0;
+  const grouped = mixed && (slide.layout === "scrap" || slide.layout === "inline");
+
+  useEffect(() => {
+    const active = contentRef.current?.querySelector<HTMLElement>(".is-narrating");
+    const copyPane = active?.closest<HTMLElement>(".recap-copy-pane");
+    const pane = copyPane && copyPane.scrollHeight > copyPane.clientHeight ? copyPane : contentRef.current;
+    if (!active || !pane || pane.scrollHeight <= pane.clientHeight) return;
+    const offset = active.getBoundingClientRect().top - pane.getBoundingClientRect().top;
+    if (offset < 0 || offset + active.offsetHeight > pane.clientHeight) {
+      pane.scrollTo({ top: pane.scrollTop + offset - 12, behavior: "smooth" });
+    }
+  }, [narratingBlockId]);
+
+  const renderBlock = (blockId: string) => {
+    const index = slide.blockIds.indexOf(blockId);
+    const block = getBlockValue(post.recordMap, blockId);
+    const isImage = block?.type === "image";
+    const isVisual = VISUAL_BLOCK_TYPES.has(block?.type);
+    const blockNarration = post.narration?.blocks[blockId];
+    const renderNarratedText = narrationEnabled && !isVisual && !!blockNarration;
+    const isNarrating = renderNarratedText && blockId === narratingBlockId;
+    const narrationState = isNarrating ? "active" : pastNarrationBlockIds.includes(blockId) ? "past" : "upcoming";
+    return (
+      <motion.div
+        className={`recap-rendered-block ${isVisual ? "is-visual" : "is-textual"} ${renderNarratedText ? "is-narration-component" : ""} ${isNarrating ? "is-narrating" : renderNarratedText ? "is-narration-idle" : ""}`}
+        key={blockId}
+        initial={isVisual ? { opacity: 0, scale: 0.9, y: 14 } : { opacity: 0, y: direction > 0 ? 30 : -30 }}
+        animate={isVisual ? { opacity: 1, scale: 1, y: 0 } : { opacity: 1, y: 0 }}
+        exit={isVisual ? { opacity: 0, scale: 0.96, y: -8 } : { opacity: 0, y: direction > 0 ? -24 : 24 }}
+        transition={{ duration: isImage ? 0.48 : 0.34, delay: index * 0.065, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {renderNarratedText ? (
+          <NarratedText key={blockNarration.hash} narration={blockNarration} sourceText={getBlockPlainText(post.recordMap, blockId) || blockNarration.text} state={narrationState} narrationTime={narrationTime} />
+        ) : (
+          <NotionRenderer
+            recordMap={post.recordMap!}
+            blockId={blockId}
+            components={rendererComponents}
+            fullPage={false}
+            darkMode={darkMode}
+            showTableOfContents={false}
+            isImageZoomable={false}
+          />
+        )}
+      </motion.div>
+    )
+  };
+
   return (
     <div
-      className={`recap-body-slide recap-layout-${slide.layout}`}
-      style={{ "--recap-visual-max-height": `${slide.visualMaxHeight}px` } as React.CSSProperties}
+      className={`recap-body-slide recap-layout-${slide.layout} ${mixed ? "has-mixed-media" : ""}`}
+      style={{ "--recap-visual-max-height": `${slide.visualMaxHeight}px`, "--recap-copy-max-height": `${slide.textMaxHeight}px` } as React.CSSProperties}
     >
-      <div className="recap-notion-content">
-        {slide.blockIds.map((blockId, index) => {
-          const block = getBlockValue(post.recordMap, blockId);
-          const isImage = block?.type === "image";
-          const isVisual = isImage || ["video", "embed", "bookmark", "file", "pdf"].includes(block?.type);
-          const blockNarration = post.narration?.blocks[blockId];
-          const renderNarratedText = narrationEnabled && !isVisual && !!blockNarration;
-          const isNarrating = renderNarratedText && blockId === narratingBlockId;
-          const narrationState = isNarrating ? "active" : pastNarrationBlockIds.includes(blockId) ? "past" : "upcoming";
-          return (
-            <motion.div
-              className={`recap-rendered-block ${isVisual ? "is-visual" : "is-textual"} ${renderNarratedText ? "is-narration-component" : ""} ${isNarrating ? "is-narrating" : renderNarratedText ? "is-narration-idle" : ""}`}
-              key={blockId}
-              initial={isVisual ? { opacity: 0, scale: 0.9, y: 14 } : { opacity: 0, y: direction > 0 ? 30 : -30 }}
-              animate={isVisual ? { opacity: 1, scale: 1, y: 0 } : { opacity: 1, y: 0 }}
-              exit={isVisual ? { opacity: 0, scale: 0.96, y: -8 } : { opacity: 0, y: direction > 0 ? -24 : 24 }}
-              transition={{ duration: isImage ? 0.48 : 0.34, delay: index * 0.065, ease: [0.22, 1, 0.36, 1] }}
-            >
-              {renderNarratedText ? (
-                <NarratedText key={blockNarration.hash} narration={blockNarration} sourceText={getBlockPlainText(post.recordMap, blockId) || blockNarration.text} state={narrationState} narrationTime={narrationTime} />
-              ) : (
-                <NotionRenderer
-                  recordMap={post.recordMap!}
-                  blockId={blockId}
-                  components={rendererComponents}
-                  fullPage={false}
-                  darkMode={darkMode}
-                  showTableOfContents={false}
-                  isImageZoomable={false}
-                />
-              )}
-            </motion.div>
-          )
-        })}
+      <div ref={contentRef} className="recap-notion-content">
+        {grouped ? (
+          <>
+            <div className="recap-copy-pane">{textIds.map(renderBlock)}</div>
+            <div className="recap-media-pane">{visualIds.map(renderBlock)}</div>
+          </>
+        ) : slide.blockIds.map(renderBlock)}
       </div>
     </div>
   );
@@ -694,7 +717,7 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
   const autoplayBeforeHelpRef = useRef(false);
   const [timerEpoch, setTimerEpoch] = useState(0);
   const [propertyItemIndex, setPropertyItemIndex] = useState(0);
-  const [musicFadingOut, setMusicFadingOut] = useState(false);
+  const musicTailRef = useRef({ key: "", remaining: MUSIC_BODY_FADE_MS, volume: 1 });
   const [musicById, setMusicById] = useState<Record<string, MusicMetadata>>({});
   const [documentVisible, setDocumentVisible] = useState(true);
   const progressRef = useRef(0);
@@ -713,15 +736,15 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     .map((item) => item.id?.trim())
     .filter((id): id is string => Boolean(id)))), [post?.id, post?.properties.music]);
   const slides: RecapSlide[] = useMemo(() => {
-    const bodyPending = Boolean(post?.recordMap && post.sections?.length && !bodySlidesReady);
+    const bodyPending = !loadError && (!loadedPost || Boolean(post?.sections?.length && !bodySlidesReady));
     const all: RecapSlide[] = post ? [
       { type: "cover", title: "월말결산 표지" },
       ...propertySlides,
       ...bodySlides,
-      ...(bodyPending ? [{ type: "empty", title: "본문 이미지를 준비하고 있어요." } as EmptySlide] : []),
+      ...(bodyPending ? [{ type: "empty", title: "본문을 준비하고 있어요." } as EmptySlide] : loadError ? [{ type: "empty", title: "본문을 불러오지 못했어요. 다른 월을 선택하거나 새로고침해 주세요." } as EmptySlide] : []),
     ] : [];
     return all.length ? all : [{ type: "empty", title: loadError ? "본문을 불러오지 못했어요." : "결산을 불러오는 중이에요." }];
-  }, [post?.id, post?.recordMap, post?.sections, propertySlides, bodySlides, bodySlidesReady, loadError]);
+  }, [post?.id, post?.recordMap, post?.sections, propertySlides, bodySlides, bodySlidesReady, loadedPost, loadError]);
   const activeSlide = slides[Math.min(slideIndex, slides.length - 1)];
   useEffect(() => {
     if (!musicIds.length) return;
@@ -747,7 +770,6 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     ? narrationQueue.slice(0, narrationQueueIndex).map((item) => item.blockId)
     : [], [soundEnabled, narrationQueue, narrationQueueIndex]);
   const isCover = activeSlide.type === "cover";
-  const coverReady = Boolean(loadedPost) || loadError;
   const isFullyLoaded = useMemo(() => {
     return (Boolean(loadedPost) && (!post?.sections?.length || bodySlidesReady)) || loadError;
   }, [loadedPost, post?.sections?.length, bodySlidesReady, loadError]);
@@ -759,12 +781,14 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     ? enrichMusicItem(activeSlide.items[propertyItemIndex] || {}, musicById)
     : undefined;
   const musicSlideIndex = slides.findIndex((slide) => slide.type === "property" && slide.key === "music");
-  const continuingMusicItem = musicSlideIndex >= 0 && slideIndex > musicSlideIndex && activeSlide.type === "property"
+  const firstBodyIndex = slides.findIndex((slide) => slide.type === "body");
+  const musicTailActive = activeSlide.type === "body" && firstBodyIndex >= 0 && slideIndex >= firstBodyIndex;
+  const playbackEnabled = autoplay && documentVisible && !sectionPickerOpen && !postPickerOpen && !helpOpen;
+  const continuingMusicItem = musicSlideIndex >= 0 && slideIndex > musicSlideIndex && (activeSlide.type === "property" || (activeSlide.type === "empty" && !loadError) || musicTailActive)
     ? enrichMusicItem((slides[musicSlideIndex] as PropertySlide).items.at(-1) || {}, musicById)
     : undefined;
   const musicPlaybackItem = activeMusicItem || continuingMusicItem;
   const musicPreview = safeUrl(musicPlaybackItem?.preview);
-  const nextSlideStartsBody = slides[slideIndex + 1]?.type === "body";
   const activePropertyArtwork = activeSlide.type === "property"
     ? safeUrl(activeMusicItem?.artwork)
     || safeUrl(activeSlide.items.find((item) => safeUrl(item.artwork))?.artwork)
@@ -798,28 +822,47 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     const audio = musicAudioRef.current || new Audio();
     musicAudioRef.current = audio;
     audio.preload = "auto";
+    let cancelled = false;
     let cancelFade = () => { };
-    if (!musicPreview || musicFadingOut || !soundEnabled || !autoplay) {
-      cancelFade = fade(audio, 0, 220, () => { audio.pause(); audio.volume = 1; });
+    const tailKey = post?.id || "";
+    if (!musicTailActive) musicTailRef.current = { key: tailKey, remaining: MUSIC_BODY_FADE_MS, volume: 1 };
+    if (!musicPreview || !soundEnabled || !playbackEnabled) {
+      if (musicTailActive) musicTailRef.current.volume = audio.volume;
+      cancelFade = fade(audio, 0, 220, () => { audio.pause(); if (!musicTailActive) audio.volume = 1; });
+    } else if (musicTailActive) {
+      // Continue an already playing preview; jumping directly to body must not start music.
+      const tail = musicTailRef.current;
+      if (tail.key === tailKey && tail.remaining > 0 && audio.src === musicPreview) {
+        const startedAt = performance.now();
+        if (audio.paused) audio.volume = tail.volume;
+        audio.play().catch((error) => muteIfAutoplayBlocked(error, () => setSoundEnabled(false)));
+        const cancel = fade(audio, 0, tail.remaining, () => { audio.pause(); tail.remaining = 0; });
+        cancelFade = () => {
+          cancel();
+          tail.volume = audio.volume;
+          tail.remaining = Math.max(0, tail.remaining - (performance.now() - startedAt));
+        };
+      } else audio.pause();
     } else if (audio.src !== musicPreview) {
       cancelFade = fade(audio, 0, 220, () => {
         audio.pause();
         audio.src = musicPreview;
         audio.currentTime = 0;
         audio.volume = 0;
-        audio.play().then(() => { cancelFade = fade(audio, 1, 320); }).catch((error) => muteIfAutoplayBlocked(error, () => setSoundEnabled(false)));
+        audio.play().then(() => { if (!cancelled) cancelFade = fade(audio, 1, 320); }).catch((error) => muteIfAutoplayBlocked(error, () => setSoundEnabled(false)));
       });
     } else {
-      audio.play().then(() => { cancelFade = fade(audio, 1, 180); }).catch((error) => muteIfAutoplayBlocked(error, () => setSoundEnabled(false)));
+      audio.play().then(() => { if (!cancelled) cancelFade = fade(audio, 1, 180); }).catch((error) => muteIfAutoplayBlocked(error, () => setSoundEnabled(false)));
     }
     return () => {
+      cancelled = true;
       cancelFade();
     };
-  }, [autoplay, musicFadingOut, musicPreview, soundEnabled]);
+  }, [playbackEnabled, musicTailActive, firstBodyIndex, post?.id, musicPreview, soundEnabled]);
 
   useEffect(() => {
     const audio = introAudioRef.current;
-    if (!isCover || !coverReady || !soundEnabled || !autoplay) {
+    if (!isCover || !soundEnabled || !playbackEnabled) {
       if (!audio || audio.paused) return;
       const initialVolume = Math.max(0, Math.min(1, audio.volume));
       const startedAt = performance.now();
@@ -830,7 +873,7 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
         if (progress < 1) frame = requestAnimationFrame(fadeOut);
         else {
           audio.pause();
-          audio.currentTime = 0;
+          if (!isCover) audio.currentTime = 0;
           audio.volume = initialVolume;
         }
       };
@@ -840,11 +883,13 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     const introAudio = audio || new Audio();
     introAudioRef.current = introAudio;
     introAudio.preload = "auto";
-    introAudio.src = introUrl;
+    if (introAudio.src !== new URL(introUrl, window.location.href).href) {
+      introAudio.src = introUrl;
+      introAudio.currentTime = 0;
+    }
     introAudio.volume = 0.86;
-    introAudio.currentTime = 0;
     introAudio.play().catch((error) => muteIfAutoplayBlocked(error, () => setSoundEnabled(false)));
-  }, [autoplay, coverReady, introUrl, isCover, soundEnabled]);
+  }, [playbackEnabled, introUrl, isCover, soundEnabled]);
 
   const sectionItems = useMemo(() => {
     const seen = new Set<string>();
@@ -869,172 +914,118 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
   })), [posts]);
 
   const classifyLayout = useCallback((elements: HTMLElement[], blockIds: string[]): BodyLayout => {
+    const visualIds = blockIds.filter((id) => VISUAL_BLOCK_TYPES.has(getBlockValue(post?.recordMap, id)?.type));
+    if (!visualIds.length) return "standard";
+    const hasText = visualIds.length < blockIds.length;
+    if (!hasText) return "inline";
     const images = elements.flatMap((element) => Array.from(element.querySelectorAll<HTMLImageElement>("img")));
-    if (!images.length) return "standard";
-    const hasTextBlock = blockIds.some((blockId) => {
-      const type = getBlockValue(post?.recordMap, blockId)?.type;
-      return !["image", "video", "embed", "bookmark", "file", "pdf", "audio"].includes(type);
-    });
-    if (!hasTextBlock) return images.length === 1 ? "scrap" : "inline";
     const image = images[0];
-    const ratio = image.naturalWidth && image.naturalHeight ? image.naturalWidth / image.naturalHeight : image.clientWidth / Math.max(1, image.clientHeight);
-    if (images.length === 1 && ratio >= 1.45 && elements.length <= 3) return "hero";
-    if (images.length === 1 && ratio >= 0.72 && ratio < 1.45 && elements.length <= 3) return "scrap";
+    const ratio = image?.naturalWidth && image.naturalHeight ? image.naturalWidth / image.naturalHeight : 1;
+    if (visualIds.length === 1 && images.length === 1) return ratio >= 1.6 ? "hero" : "scrap";
     return "inline";
   }, [post?.recordMap]);
 
   const paginateMeasuredBlocks = useCallback(() => {
     if (!post?.sections || !post.recordMap) return;
-    const slideElement = document.querySelector<HTMLElement>(".recap-slide");
-    const available = Math.max(240, (slideElement?.clientHeight || window.innerHeight - 220) - 36);
-    const pageBudget = available * (window.innerWidth < 640 ? 0.76 : window.innerWidth < 1200 ? 0.79 : 0.82);
-    const textHeightFactor = window.innerWidth < 640 ? 1.22 : window.innerWidth < 1200 ? 1.34 : 1.42;
-    const narrationHeightFactor = window.innerWidth < 640 ? 1.16 : 1.12;
+    const slideElement = document.querySelector<HTMLElement>("[data-recap-body-viewport]");
+    if (!slideElement) return;
+    const style = getComputedStyle(slideElement);
+    const available = Math.max(120, slideElement.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom));
+    const pageBudget = available - 24;
+    const gap = Math.min(24, Math.max(14, window.innerHeight * 0.02));
+    const sideBySide = window.innerWidth >= 900;
     const nextSlides: BodySlide[] = [];
 
     post.sections.forEach((section) => {
       const sectionElement = document.querySelector(`[data-recap-section="${section.id}"]`);
-      const blockElements = Array.from(sectionElement?.querySelectorAll<HTMLElement>("[data-recap-block]") || []);
-      const sectionPages: { blockIds: string[]; elements: HTMLElement[]; used: number }[] = [];
-      let currentIds: string[] = [];
-      let currentElements: HTMLElement[] = [];
-      let used = 0;
-
-      const flush = () => {
-        if (!currentIds.length) return;
-        sectionPages.push({ blockIds: currentIds, elements: currentElements, used });
-        currentIds = [];
-        currentElements = [];
-        used = 0;
+      const elementsById = new Map(Array.from(sectionElement?.querySelectorAll<HTMLElement>("[data-recap-block]") || [])
+        .map((element) => [element.dataset.recapBlock!, element]));
+      const isVisual = (id: string) => VISUAL_BLOCK_TYPES.has(getBlockValue(post.recordMap, id)?.type);
+      const height = (id: string) => {
+        const element = elementsById.get(id);
+        if (isVisual(id)) return Math.min(pageBudget * 0.48, Math.max(96, element?.getBoundingClientRect().height || 180));
+        // Measure both narrated and original copy at the actual column width.
+        const variants = Array.from(element?.querySelectorAll<HTMLElement>("[data-recap-copy-measure]") || []);
+        return Math.max(32, ...variants.map((node) => node.getBoundingClientRect().height), element?.getBoundingClientRect().height || 0);
       };
-
-      section.blockIds.forEach((blockId, index) => {
-        const element = blockElements[index];
-        const hasVisual = !!element?.querySelector("img, .notion-asset-wrapper-image, video, iframe, .notion-bookmark, .notion-collection-card");
-        const measured = element?.getBoundingClientRect().height || 96;
-        const isNarrationMeasure = element?.hasAttribute("data-recap-narration-measure") || false;
-        const fittedHeight = hasVisual
-          ? Math.max(pageBudget * 0.34, Math.min(measured + 28, pageBudget * 0.58))
-          : measured * (isNarrationMeasure ? narrationHeightFactor : textHeightFactor) + (isNarrationMeasure ? 30 : 22);
-        if (currentIds.length && used + fittedHeight > pageBudget) flush();
-        currentIds.push(blockId);
-        if (element) currentElements.push(element);
-        used += fittedHeight;
-      });
-      flush();
-
-      if (window.innerWidth >= 768) {
-        for (let index = sectionPages.length - 1; index >= 0; index -= 1) {
-          const page = sectionPages[index];
-          const types = page.blockIds.map((blockId) => getBlockValue(post.recordMap, blockId)?.type);
-          const visualTypes = new Set(["image", "video", "embed", "bookmark", "file", "pdf", "audio"]);
-          const isVisualOnly = types.includes("image") && types.every((type) => visualTypes.has(type));
-          if (!isVisualOnly || sectionPages.length === 1) continue;
-          const nextPage = sectionPages[index + 1];
-          const previousPage = sectionPages[index - 1];
-          const target = [nextPage, previousPage].find((candidate) => {
-            if (!candidate) return false;
-            const combinedElements = candidate === nextPage
-              ? [...page.elements, ...candidate.elements]
-              : [...candidate.elements, ...page.elements];
-            const combinedIds = candidate === nextPage
-              ? [...page.blockIds, ...candidate.blockIds]
-              : [...candidate.blockIds, ...page.blockIds];
-            const combinedLayout = classifyLayout(combinedElements, combinedIds);
-            return combinedLayout === "scrap" || combinedLayout === "inline"
-              ? Math.max(candidate.used, page.used) <= pageBudget * 0.88
-              : candidate.used + page.used <= pageBudget * 0.84;
-          });
-          if (!target) {
-            const donor = nextPage?.blockIds.length > 1 ? nextPage : previousPage?.blockIds.length > 1 ? previousPage : undefined;
-            if (!donor) continue;
-            const donorIndexes = donor === nextPage
-              ? donor.blockIds.map((_, donorIndex) => donorIndex)
-              : donor.blockIds.map((_, donorIndex) => donorIndex).reverse();
-            const textIndex = donorIndexes.find((donorIndex) => !visualTypes.has(getBlockValue(post.recordMap, donor.blockIds[donorIndex])?.type));
-            if (textIndex === undefined) continue;
-            const textElement = donor.elements[textIndex];
-            const movedHeight = (textElement?.getBoundingClientRect().height || 96)
-              * (textElement?.hasAttribute("data-recap-narration-measure") ? narrationHeightFactor : 1.12)
-              + (textElement?.hasAttribute("data-recap-narration-measure") ? 30 : 22);
-            if (page.used + movedHeight > pageBudget * 0.84) continue;
-            const [textBlockId] = donor.blockIds.splice(textIndex, 1);
-            donor.elements.splice(textIndex, 1);
-            donor.used = Math.max(0, donor.used - movedHeight);
-            if (donor === nextPage) {
-              page.blockIds.push(textBlockId);
-              if (textElement) page.elements.push(textElement);
-            } else {
-              page.blockIds.unshift(textBlockId);
-              if (textElement) page.elements.unshift(textElement);
-            }
-            page.used += movedHeight;
-            continue;
-          }
-          if (target === nextPage) {
-            target.blockIds.unshift(...page.blockIds);
-            target.elements.unshift(...page.elements);
-          } else {
-            target.blockIds.push(...page.blockIds);
-            target.elements.push(...page.elements);
-          }
-          target.used += page.used;
-          sectionPages.splice(index, 1);
+      const layoutFor = (ids: string[]) => classifyLayout(ids.map((id) => elementsById.get(id)).filter(Boolean), ids);
+      const stackHeight = (ids: string[]) => ids.reduce((total, id) => total + height(id), 0) + Math.max(0, ids.length - 1) * gap;
+      const requiredHeight = (ids: string[]) => {
+        const visual = ids.filter(isVisual);
+        const text = ids.filter((id) => !isVisual(id));
+        const layout = layoutFor(ids);
+        return sideBySide && visual.length && text.length && layout !== "hero"
+          ? Math.max(stackHeight(text), stackHeight(visual))
+          : stackHeight(ids);
+      };
+      const textBudget = (ids: string[]) => {
+        const mixed = ids.some(isVisual);
+        const sample = elementsById.get(ids.find((id) => !isVisual(id)) || "")?.querySelector<HTMLElement>(".notion-text, .recap-narrated-text");
+        const lineHeight = sample ? parseFloat(getComputedStyle(sample).lineHeight) || 28 : 28;
+        // Aim for roughly 8 lines beside a photo and 10 lines on copy-only pages.
+        return Math.max(96, Math.min(pageBudget * (mixed ? 0.52 : 0.66), lineHeight * (mixed ? 8 : 10)));
+      };
+      const fits = (ids: string[]) => {
+        const text = ids.filter((id) => !isVisual(id));
+        return requiredHeight(ids) <= pageBudget * 0.9
+          && stackHeight(text) <= textBudget(ids)
+          && text.length <= (ids.some(isVisual) ? 2 : 3);
+      };
+      const pages: string[][] = [];
+      let current: string[] = [];
+      for (const id of section.blockIds) {
+        // On stacked pages a photo closes the preceding passage. Do not pair it
+        // with the next topic just because that paragraph happens to fit.
+        if (!sideBySide && current.length && isVisual(current.at(-1)!) && !isVisual(id)) {
+          pages.push(current);
+          current = [];
         }
+        if (current.length && !fits([...current, id])) {
+          const previous = current.at(-1)!;
+          const carryCopy = isVisual(id) && !isVisual(previous) && fits([previous, id]);
+          if (carryCopy) current.pop();
+          if (current.length) pages.push(current);
+          current = carryCopy ? [previous] : [];
+        }
+        current.push(id);
       }
-
-      if (!sectionPages.length) sectionPages.push({ blockIds: [], elements: [], used: 0 });
-      sectionPages.forEach((page, index) => {
-        const visualTypes = new Set(["image", "video", "embed", "bookmark", "file", "pdf", "audio"]);
-        const pageBlocks = page.blockIds.map((blockId, blockIndex) => ({
-          type: getBlockValue(post.recordMap, blockId)?.type,
-          element: page.elements[blockIndex],
-        }));
-        const visualCount = pageBlocks.filter((block) => visualTypes.has(block.type)).length;
-        const textHeight = pageBlocks
-          .filter((block) => !visualTypes.has(block.type))
-          .reduce((height, block) => {
-            const element = block.element;
-            const isNarrationMeasure = element?.hasAttribute("data-recap-narration-measure") || false;
-            const factor = isNarrationMeasure ? narrationHeightFactor : textHeightFactor;
-            return height + (element?.getBoundingClientRect().height || 0) * factor + (isNarrationMeasure ? 30 : 22);
-          }, 0);
-        const remainingForVisuals = Math.max(130, pageBudget - textHeight - visualCount * 32 - Math.max(0, visualCount - 1) * 20);
-        const visualMaxHeight = visualCount
-          ? Math.max(130, Math.min(pageBudget * 0.52, remainingForVisuals / visualCount))
+      if (current.length) pages.push(current);
+      if (!pages.length) pages.push([]);
+      pages.forEach((ids, index) => {
+        const visual = ids.filter(isVisual);
+        const text = ids.filter((id) => !isVisual(id));
+        const layout = layoutFor(ids);
+        const columns = sideBySide && visual.length && text.length && layout !== "hero";
+        const visualBudget = columns || !text.length ? pageBudget : pageBudget - stackHeight(text) - gap;
+        const visualMaxHeight = visual.length
+          ? Math.max(72, Math.min(pageBudget * (text.length ? 0.48 : 0.85), (visualBudget - Math.max(0, visual.length - 1) * gap) / visual.length))
           : pageBudget;
-        nextSlides.push({
-          type: "body",
-          sectionId: section.id,
-          title: section.title,
-          blockIds: page.blockIds,
-          continuation: index > 0,
-          layout: classifyLayout(page.elements, page.blockIds),
-          visualMaxHeight,
-        });
+        nextSlides.push({ type: "body", sectionId: section.id, title: section.title, blockIds: ids,
+          continuation: index > 0, layout, visualMaxHeight, textMaxHeight: textBudget(ids) });
       });
     });
-
-    const signature = (value: BodySlide[]) => value.map((item) => `${item.sectionId}:${item.blockIds.join(",")}:${item.layout}:${Math.round(item.visualMaxHeight)}`).join("|");
+    const signature = (value: BodySlide[]) => value.map((item) => `${item.sectionId}:${item.blockIds.join(",")}:${item.layout}:${Math.round(item.visualMaxHeight)}:${Math.round(item.textMaxHeight)}`).join("|");
     setBodySlides((current) => signature(current) === signature(nextSlides) ? current : nextSlides);
     setBodySlidesReady(true);
-  }, [classifyLayout, post?.id, post?.narration, post?.recordMap, post?.sections]);
+  }, [classifyLayout, post?.id, post?.recordMap, post?.sections]);
 
   useEffect(() => {
     if (!sourcePost || recapData[sourcePost.id]) return;
     const controller = new AbortController();
     setLoadError(false);
+    const timeout = window.setTimeout(() => { setLoadError(true); controller.abort(); }, 20000);
     fetch(`/api/recap/${sourcePost.id}`, { signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error("Failed to load recap");
         return response.json();
       })
-      .then((data) => setRecapData((current) => ({ ...current, [sourcePost.id]: data })))
-      .catch((error) => { if (error.name !== "AbortError") setLoadError(true); });
-    return () => controller.abort();
+      .then((data) => { if (!controller.signal.aborted) setRecapData((current) => ({ ...current, [sourcePost.id]: data })); })
+      .catch((error) => { if (!controller.signal.aborted && error.name !== "AbortError") setLoadError(true); });
+    return () => { window.clearTimeout(timeout); controller.abort(); };
   }, [sourcePost?.id, !!(sourcePost && recapData[sourcePost.id])]);
 
   useEffect(() => {
+    setLoadError(false);
     setSlideIndex(0);
     setBodySlides([]);
     setBodySlidesReady(false);
@@ -1052,29 +1043,52 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     const run = () => {
       if (cancelled) return;
       cancelAnimationFrame(frame);
+      syncMeasureWidth();
       frame = requestAnimationFrame(paginateMeasuredBlocks);
     };
+    const syncMeasureWidth = () => {
+      const slide = document.querySelector<HTMLElement>("[data-recap-body-viewport]");
+      if (!slide) return;
+      const style = getComputedStyle(slide);
+      const width = slide.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const columnGap = Math.min(42, Math.max(24, window.innerWidth * 0.03));
+      measureRoot.style.width = `${width}px`;
+      measureRoot.style.setProperty("--recap-copy-width", `${(width - columnGap) * 0.6}px`);
+    };
+    syncMeasureWidth();
     const images = Array.from(measureRoot.querySelectorAll<HTMLImageElement>("img"));
     images.forEach((image) => {
       image.loading = "eager";
       image.fetchPriority = "low";
     });
+    const imageCleanups: (() => void)[] = [];
     const imageReady = (image: HTMLImageElement) => {
       if (image.complete) return image.decode?.().catch(() => undefined) || Promise.resolve();
       return new Promise<void>((resolve) => {
-        image.addEventListener("load", () => image.decode?.().catch(() => undefined).finally(resolve) || resolve(), { once: true });
-        image.addEventListener("error", () => resolve(), { once: true });
+        const loaded = () => { image.decode?.().catch(() => undefined).finally(resolve) || resolve(); };
+        const failed = () => resolve();
+        image.addEventListener("load", loaded, { once: true });
+        image.addEventListener("error", failed, { once: true });
+        imageCleanups.push(() => {
+          image.removeEventListener("load", loaded);
+          image.removeEventListener("error", failed);
+          resolve();
+        });
       });
     };
+    const fallback = window.setTimeout(run, 4000);
+    window.addEventListener("resize", run);
     Promise.all([
       Promise.all(images.map(imageReady)),
       document.fonts?.ready || Promise.resolve(),
     ]).then(() => {
+      window.clearTimeout(fallback);
       run();
-      if (!cancelled) window.addEventListener("resize", run);
     });
     return () => {
       cancelled = true;
+      window.clearTimeout(fallback);
+      imageCleanups.forEach((cleanup) => cleanup());
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", run);
     };
@@ -1149,10 +1163,9 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     progressMotion.set(0);
     propertyItemIndexRef.current = 0;
     setPropertyItemIndex(0);
-    setMusicFadingOut(false);
-  }, [post?.id, slideIndex, progressMotion]);
+  }, [post?.id, slideIndex, activeSlide.type, progressMotion]);
 
-  useEffect(() => { autoplayRef.current = autoplay; }, [autoplay]);
+  useEffect(() => { autoplayRef.current = playbackEnabled; }, [playbackEnabled]);
 
   useEffect(() => {
     setNarrationQueueIndex(0);
@@ -1211,9 +1224,9 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !soundEnabled || !activeNarration) return;
-    if (autoplay) audio.play().catch((error) => muteIfAutoplayBlocked(error, () => setSoundEnabled(false)));
+    if (playbackEnabled) audio.play().catch((error) => muteIfAutoplayBlocked(error, () => setSoundEnabled(false)));
     else audio.pause();
-  }, [activeNarration, autoplay, soundEnabled]);
+  }, [activeNarration, playbackEnabled, soundEnabled]);
 
   useEffect(() => {
     setSlideIndex((current) => {
@@ -1234,7 +1247,6 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
 
   useEffect(() => {
     if (!autoplay || !documentVisible || sectionPickerOpen || postPickerOpen || helpOpen || !post || activeSlide.type === "empty") return;
-    if (activeSlide.type === "cover" && !coverReady) return;
     if (soundEnabled && activeSlide.type === "body" && narrationQueue.length) return;
     const duration = getSlideDuration(activeSlide, post, soundEnabled);
     const startedAt = performance.now() - progressRef.current * duration;
@@ -1251,12 +1263,9 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
           propertyItemIndexRef.current = nextItemIndex;
           setPropertyItemIndex(nextItemIndex);
         }
-        if (nextSlideStartsBody && nextItemIndex === activeSlide.items.length - 1 && progress >= 1 - MUSIC_FADE_OUT_LEAD_MS / duration) {
-          setMusicFadingOut(true);
-        }
       }
       if (progress >= 1) {
-        if (activeSlide.type === "cover" && !isFullyLoaded) {
+        if (!slides[slideIndex + 1] && !isFullyLoaded) {
           progressRef.current = 1;
           progressMotion.set(1);
           frame = requestAnimationFrame(tick);
@@ -1267,7 +1276,7 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [activeSlide, autoplay, changeSlide, coverReady, documentVisible, helpOpen, isFullyLoaded, narrationQueue.length, nextSlideStartsBody, post?.id, post?.recordMap, postPickerOpen, sectionPickerOpen, soundEnabled, timerEpoch]);
+  }, [activeSlide, autoplay, changeSlide, documentVisible, helpOpen, isFullyLoaded, narrationQueue.length, slides.length, slideIndex, post?.id, post?.recordMap, postPickerOpen, sectionPickerOpen, soundEnabled, timerEpoch]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1409,38 +1418,43 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
             </div>
           </div>
 
-          <AnimatePresence mode="wait" initial={false} custom={direction}>
-            <motion.article key={`${post.id}-${slideIndex}`} className="recap-slide" custom={direction} initial={{ opacity: 0, x: direction > 0 ? 28 : -28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: direction > 0 ? -28 : 28 }} transition={{ duration: 0.22, ease: "easeOut" }}>
-              {activeSlide.type === "cover" && <CoverContent post={post} animationReady={coverReady} />}
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.article key={`${post.id}-${slideIndex}-${activeSlide.type}`} className="recap-slide" custom={direction} initial={{ opacity: 0, x: direction > 0 ? 28 : -28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: direction > 0 ? -28 : 28 }} transition={{ duration: 0.22, ease: "easeOut" }}>
+              {activeSlide.type === "cover" && <CoverContent post={post} />}
               {activeSlide.type === "property" && <PropertyContent slide={activeSlide} activeMusicIndex={propertyItemIndex} musicById={musicById} onToggleAutoplay={() => setAutoplay((current) => !current)} />}
               {activeSlide.type === "body" && <BodyContent slide={activeSlide} post={post} darkMode={darkMode} direction={direction} narrationEnabled={soundEnabled} narratingBlockId={soundEnabled ? activeNarration?.blockId : undefined} pastNarrationBlockIds={pastNarrationBlockIds} narrationTime={narrationTime} />}
-              {activeSlide.type === "empty" && <div className="recap-empty-slide"><IonIcon name="moon-outline" /><h1>{activeSlide.title}</h1></div>}
+              {activeSlide.type === "empty" && <div className="recap-empty-slide" role="status" aria-live="polite"><IonIcon name="moon-outline" /><h1>{activeSlide.title}</h1></div>}
             </motion.article>
           </AnimatePresence>
         </section>
 
         <div className="recap-measurer" aria-hidden="true">
           {(post.sections || []).map((section) => (
-            <div key={section.id} data-recap-section={section.id}>
+            <div key={section.id} data-recap-section={section.id} className={section.blockIds.some((id) => VISUAL_BLOCK_TYPES.has(getBlockValue(post.recordMap, id)?.type)) ? "has-visuals" : ""}>
               {section.blockIds.map((blockId) => {
                 const block = getBlockValue(post.recordMap, blockId);
-                const isVisual = ["image", "video", "embed", "bookmark", "file", "pdf"].includes(block?.type);
+                const isVisual = VISUAL_BLOCK_TYPES.has(block?.type);
                 const blockNarration = post.narration?.blocks[blockId];
                 const measureNarration = !isVisual && !!blockNarration;
                 return (
                   <div
                     key={blockId}
                     data-recap-block={blockId}
+                    className={isVisual ? "is-visual" : "is-textual"}
                     data-recap-narration-measure={measureNarration ? "true" : undefined}
                   >
-                    {measureNarration ? (
+                    {measureNarration && (
+                      <div data-recap-copy-measure>
                       <NarratedText
                         narration={blockNarration}
                         sourceText={getBlockPlainText(post.recordMap, blockId) || blockNarration.text}
                         state="upcoming"
                         narrationTime={narrationTime}
                       />
-                    ) : post.recordMap && (
+                      </div>
+                    )}
+                    {post.recordMap && (
+                      <div data-recap-copy-measure>
                       <NotionRenderer
                         recordMap={post.recordMap}
                         blockId={blockId}
@@ -1450,6 +1464,7 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
                         showTableOfContents={false}
                         isImageZoomable={false}
                       />
+                      </div>
                     )}
                   </div>
                 );
@@ -1487,6 +1502,9 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
           {helpOpen && <RecapHelpOverlay onClose={closeHelp} />}
         </AnimatePresence>
       </main>
+      <div className="recap-shell recap-sizing-shell" aria-hidden="true">
+        <div className="recap-stage"><div className="recap-slide" data-recap-body-viewport /></div>
+      </div>
     </LayoutGroup>
   );
 }
