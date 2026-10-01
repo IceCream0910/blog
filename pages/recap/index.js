@@ -26,7 +26,7 @@ function parseObjects(property) {
 }
 
 function namedProperty(properties, name) {
-  const key = Object.keys(properties || {}).find((candidate) => candidate.toLowerCase() === name);
+  const key = Object.keys(properties || {}).find((candidate) => candidate.trim().toLowerCase() === name);
   return key ? properties[key] : undefined;
 }
 
