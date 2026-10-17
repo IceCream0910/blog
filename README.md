@@ -463,6 +463,30 @@ X-Graph-Cache: MISS  # 요청 중 새 snapshot 생성
 
 ## 배포
 
+### Forest 폴더와 검색 Agent
+
+Forest DB의 `forest_폴더` 텍스트 속성(API 타입: `rich_text`)에 `프로젝트/KLAS+/iOS`처럼 `/`로 구분한 경로를 지정합니다. 경로의 앞뒤 공백과 빈 구간은 정리하며, 빈 값은 최상위 문서로 표시됩니다. 이전 select 형식도 읽을 수 있습니다. 폴더는 이름순, 폴더 안 문서는 선택한 정렬순으로 표시하며 펼침 상태는 현재 브라우저 세션에 저장합니다.
+
+전역 검색과 Forest의 문서 검색은 `/api/search?q=검색어&type=document`를 공유합니다. `type`은 `all`, `document`, `post`, `project`, `recap`이고 선택적으로 `folder`를 지정합니다. 본문 검색 장애 시 `partial: true`와 제목 검색 결과를 반환합니다. 현재 달의 월말결산은 기존 `/recap`과 동일하게 검색에서 제외합니다.
+
+AI 검색에는 서버 환경변수 5개가 필요합니다. 클라이언트에 키를 전달하지 않습니다.
+
+| 변수 | 용도 |
+| --- | --- |
+| `OPENAI_API_KEY` | OpenAI API 키 |
+| `SEARCH_AGENT_MODEL` | Responses API와 function calling을 지원하는 모델 ID |
+| `UPSTASH_REDIS_REST_URL` | 공유 사용량 제한·캐시용 Redis REST 주소 |
+| `UPSTASH_REDIS_REST_TOKEN` | 해당 Redis REST 토큰 |
+| `SEARCH_AGENT_IP_SALT` | IP를 HMAC 처리할 충분히 긴 무작위 서버 비밀값 |
+
+설정 누락 또는 Redis 장애 시 AI endpoint는 유료 호출 전에 503을 반환합니다. 일반 검색에는 AI 설정이 필요하지 않습니다. Vercel에서는 플랫폼이 덮어쓰는 `x-vercel-forwarded-for`, 다른 서버에서는 socket peer 주소를 사용합니다. 다른 reverse proxy 아래에서는 같은 peer가 한도를 공유하므로 배포 환경에 맞는 신뢰 경계를 별도로 설정해야 합니다.
+
+AI는 버튼 또는 ⌘/Ctrl+Enter로만 실행합니다. 질문·검색어는 최대 300자, IP별 시간당 15회, 전체 시간당 100회(캐시 조회 포함)입니다. 사용량 예약은 Redis Lua로 원자적으로 처리합니다. 도구 호출 최대 8회, 공개 문서 읽기 최대 5개, 문서당 12,000자, 계획 응답당 600토큰, 최종 답변 1,400토큰, 전체 50초 제한을 둡니다. 중지는 모델 요청도 취소합니다.
+
+질문·범위·폴더·모델·문서 수정 시각으로 구분한 답변 캐시는 Redis에 10분간 저장합니다. 시간당 전체 요청 한도로 캐시 증가량도 제한합니다. IP 원문은 저장하지 않으며 사용량 키는 2시간 후 삭제됩니다. 검색 목록 캐시는 서버 메모리에서 60초 유지합니다. AI 출처 링크는 실제 읽기에 성공한 공개 목록의 문서에서만 구성합니다. 질문과 선택한 문서 본문은 OpenAI로 전송되며 `store: false`로 요청합니다.
+
+검증: `node --test tests/search.test.cjs`, `npx tsc --noEmit`, `yarn build`. 테스트의 Notion/OpenAI/Redis 호출은 가짜 응답으로 격리되며 비용이 발생하지 않습니다.
+
 ### Vercel
 
 1. GitHub 저장소를 Vercel 프로젝트에 연결합니다.

@@ -1,262 +1,183 @@
-import IonIcon from '@reacticons/ionicons';
-import Link from 'next/link';
-import React from 'react';
+import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "framer-motion";
+import { useSearchResults } from "../hooks/useSearchResults";
+import { SEARCH_SCOPES, scopeLabels, type SearchOptions, type SearchResult, type SearchScope } from "../utils/search/types";
 
-const debounce = (func: Function, wait: number) => {
-    let timeout: NodeJS.Timeout;
-    return function (...args: any[]) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func(...args), wait);
-    };
-};
+const MotionLink = motion.create(Link);
+const resultKey = (query: string, id: string) => `${query.trim()}:${id}`;
 
-export const Search: React.FC<any> = ({ onClose }) => {
-    const [query, setQuery] = React.useState('');
-    const [results, setResults] = React.useState<any[]>([]);
-    const [selectedIndex, setSelectedIndex] = React.useState(0);
-    const [isLoading, setIsLoading] = React.useState(false);
-    const abortControllerRef = React.useRef<AbortController | null>(null);
-    const resultsContainerRef = React.useRef<HTMLDivElement>(null);
-    const selectedItemRef = React.useRef<HTMLAnchorElement>(null);
-    const searchBoxRef = React.useRef<HTMLDivElement>(null);
+const SearchResultItem = React.forwardRef<HTMLAnchorElement, {
+  result: SearchResult; active: boolean; reducedMotion: boolean; onClose: () => void; onFocus: () => void;
+}>(function SearchResultItem({ result, active, reducedMotion, onClose, onFocus }, ref) {
+  const isPresent = useIsPresent();
+  return <MotionLink ref={ref} href={result.href} className={`global-search-result ${active ? "is-selected" : ""}`}
+    aria-hidden={!isPresent || undefined} tabIndex={isPresent ? 0 : -1} style={{ pointerEvents: isPresent ? "auto" : "none" }}
+    layout={reducedMotion ? false : "position"}
+    initial={{ opacity: 0, y: reducedMotion ? 0 : 6, filter: reducedMotion ? "blur(0px)" : "blur(4px)" }}
+    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+    exit={{ opacity: 0, y: reducedMotion ? 0 : -4, filter: reducedMotion ? "blur(0px)" : "blur(4px)" }}
+    transition={{ duration: reducedMotion ? 0 : .18, ease: [.22, 1, .36, 1] }}
+    onFocus={onFocus} onClick={(event) => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && event.button === 0) onClose(); }}>
+    <motion.div key={`${result.title}:${result.excerpt || ""}`}
+      initial={{ opacity: reducedMotion ? 1 : .45 }} animate={{ opacity: 1 }} transition={{ duration: reducedMotion ? 0 : .18 }}>
+      <strong>{result.title}</strong>
+      <small>{scopeLabels[result.type]}{result.folderPath && ` · ${result.folderPath.replaceAll("/", " / ")}`}</small>
+      {result.excerpt && <p>{result.excerpt}</p>}
+    </motion.div>
+  </MotionLink>;
+});
 
-    const search = React.useCallback((query: string) => {
-        if (!query.trim()) {
-            setResults([]);
-            return;
+export function Search({ onClose, initialOptions = {} }: { onClose: () => void; initialOptions?: SearchOptions }) {
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const [scope, setScope] = useState<SearchScope>(initialOptions.scope || "all");
+  const [folder, setFolder] = useState(initialOptions.folder || "");
+  const { results, loading, error, partial } = useSearchResults(query, scope, folder);
+  const reducedMotion = useReducedMotion();
+  const isPresent = useIsPresent();
+  const [selected, setSelected] = useState(0);
+  const [answer, setAnswer] = useState("");
+  const [sources, setSources] = useState<SearchResult[]>([]);
+  const [agentLoading, setAgentLoading] = useState(false);
+  const [agentError, setAgentError] = useState("");
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const linksRef = useRef(new Map<string, HTMLAnchorElement>());
+  const agentRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    inputRef.current?.focus();
+    return () => { document.body.style.overflow = overflow; previous?.focus?.({ preventScroll: true }); agentRef.current?.abort(); };
+  }, []);
+
+  useEffect(() => {
+    agentRef.current?.abort();
+    setAnswer(""); setSources([]); setAgentError(""); setAgentLoading(false);
+    setSelected(0);
+  }, [query, scope, folder]);
+
+  useEffect(() => { if (!isPresent) agentRef.current?.abort(); }, [isPresent]);
+  useEffect(() => { setSelected((previous) => Math.min(previous, Math.max(0, results.length - 1))); }, [results.length]);
+
+  const selectedResultId = results[selected]?.id;
+  useEffect(() => {
+    if (selectedResultId) linksRef.current.get(resultKey(query, selectedResultId))?.scrollIntoView({ block: "nearest" });
+  }, [selectedResultId, query]);
+
+  const askAgent = async () => {
+    if (!query.trim() || agentLoading) return;
+    agentRef.current?.abort();
+    const controller = new AbortController();
+    agentRef.current = controller;
+    setAgentLoading(true); setAgentError(""); setAnswer(""); setSources([]);
+    try {
+      const response = await fetch("/api/agent/search", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: query.trim(), scope, folder }), signal: controller.signal,
+      });
+      if (!response.ok) { const data = await response.json(); throw new Error(data.error || "AI 답변을 불러오지 못했습니다."); }
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let doneEvent = false;
+      const consume = (line: string) => {
+        if (!line.trim() || controller.signal.aborted) return;
+        const event = JSON.parse(line);
+        if (event.type === "delta") setAnswer((previous) => previous + event.text);
+        if (event.type === "sources") setSources(event.sources);
+        if (event.type === "error") throw new Error(event.error);
+        if (event.type === "done") doneEvent = true;
+      };
+      while (true) {
+        const { done, value } = await reader.read();
+        buffer += decoder.decode(value, { stream: !done });
+        const lines = buffer.split("\n"); buffer = lines.pop() || "";
+        lines.forEach(consume);
+        if (done) { consume(buffer); break; }
+      }
+      if (!doneEvent) throw new Error("답변 연결이 끊겼습니다. 다시 시도해 주세요.");
+    } catch (error) {
+      if (!controller.signal.aborted) { setAgentError(error.message); setAnswer(""); setSources([]); }
+    } finally { if (!controller.signal.aborted) setAgentLoading(false); }
+  };
+
+  return <motion.div className="global-search-backdrop" aria-hidden={!isPresent || undefined}
+    initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+    animate={{ opacity: 1, backdropFilter: reducedMotion ? "blur(0px)" : "blur(8px)" }}
+    exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+    transition={{ duration: reducedMotion ? 0 : .24, ease: [.22, 1, .36, 1] }}
+    style={{ pointerEvents: isPresent ? "auto" : "none" }}
+    onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <motion.div ref={dialogRef} role="dialog" aria-modal="true" aria-label="블로그 검색" className="global-search"
+      initial={{ opacity: 0, y: reducedMotion ? 0 : 14, scale: reducedMotion ? 1 : .975, filter: reducedMotion ? "blur(0px)" : "blur(10px)" }}
+      animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+      exit={{ opacity: 0, y: reducedMotion ? 0 : 8, scale: reducedMotion ? 1 : .985, filter: reducedMotion ? "blur(0px)" : "blur(8px)" }}
+      transition={{ duration: reducedMotion ? 0 : .22, ease: [.22, 1, .36, 1] }}
+      onKeyDown={(event) => {
+        if (event.nativeEvent.isComposing) return;
+        if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onClose(); }
+        if (event.key === "Tab") {
+          const elements = Array.from(dialogRef.current!.querySelectorAll<HTMLElement>('button:not(:disabled), a[href]:not([tabindex="-1"]), input'));
+          const first = elements[0]; const last = elements[elements.length - 1];
+          if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+          else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
         }
-
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-        }
-
-        const abortController = new AbortController();
-        abortControllerRef.current = abortController;
-
-        setIsLoading(true);
-        fetch(`/api/search-notion`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                query,
-                ancestorId: "e5f8cfa7-6c5c-48e0-b060-734faa8cb4bb",
-                filter: {
-                    "isDeletedOnly": false,
-                    "excludeTemplates": false,
-                    "navigableBlockContentOnly": false,
-                    "requireEditPermissions": false,
-                    "includePublicPagesWithoutExplicitAccess": true,
-                    "ancestors": [],
-                    "createdBy": [],
-                    "editedBy": [],
-                    "lastEditedTime": {},
-                    "createdTime": {},
-                    "inTeams": []
-                },
-                limit: 100,
-                searchSessionId: "c88eadd0-f242-4cfc-aaf7-5610761491a0"
-            }),
-            signal: abortController.signal,
-        })
-            .then(res => res.json())
-            .then(async (data: any) => {
-                if (!abortController.signal.aborted) {
-                    await data.results.map(async (result: any) => {
-                        try {
-                            const title = data.recordMap.block[result.id].value.properties.title[0][0];
-                            result.title = title;
-                        }
-                        catch (e) {
-                            console.log(e);
-                            result.title = "";
-                        }
-                    });
-                    setResults(data.results);
-                    setIsLoading(false);
-                }
-            })
-            .catch((error) => {
-                if (error.name === 'AbortError') {
-                    return;
-                }
-                console.error(error);
-                setIsLoading(false);
-            });
-    }, []);
-
-    const debouncedSearch = React.useMemo(
-        () => debounce(search, 300),
-        [search]
-    );
-
-    React.useEffect(() => {
-        debouncedSearch(query);
-        return () => {
-            if (abortControllerRef.current) {
-                abortControllerRef.current.abort();
+      }}>
+      <div className="global-search-input">
+        <input ref={inputRef} value={query} maxLength={300} aria-label="블로그 검색어" placeholder="검색하거나 질문하세요"
+          onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => {
+            if (event.nativeEvent.isComposing) return;
+            if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void askAgent(); }
+            else if ((event.key === "ArrowDown" || event.key === "ArrowUp") && results.length) {
+              event.preventDefault(); setSelected((previous) => (previous + (event.key === "ArrowDown" ? 1 : -1) + results.length) % results.length);
+            } else if (event.key === "Enter" && results[selected]) {
+              event.preventDefault();
+              void router.push(results[selected].href);
+              onClose();
             }
-        };
-    }, [query, debouncedSearch]);
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-        switch (e.key) {
-            case 'ArrowDown':
-                e.preventDefault();
-                setSelectedIndex(prev => (prev + 1) % results.length);
-                break;
-            case 'ArrowUp':
-                e.preventDefault();
-                setSelectedIndex(prev => (prev - 1 + results.length) % results.length);
-                break;
-            case 'Enter':
-                e.preventDefault();
-                if (results[selectedIndex]) {
-                    window.location.href = `/${results[selectedIndex].id}`;
-                }
-                break;
-            case 'Escape':
-                e.preventDefault();
-                onClose();
-                break;
-        }
-    };
-
-    React.useEffect(() => {
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [results, selectedIndex]);
-
-    React.useEffect(() => {
-        if (selectedItemRef.current && resultsContainerRef.current) {
-            const container = resultsContainerRef.current;
-            const item = selectedItemRef.current;
-
-            const containerRect = container.getBoundingClientRect();
-            const itemRect = item.getBoundingClientRect();
-
-            if (itemRect.bottom > containerRect.bottom) {
-                item.scrollIntoView({ behavior: 'smooth', block: 'end' });
-            } else if (itemRect.top < containerRect.top) {
-                item.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }
-    }, [selectedIndex]);
-
-    React.useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (searchBoxRef.current && !searchBoxRef.current.contains(event.target as Node)) {
-                onClose();
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [onClose]);
-
-    return (
-        <div className="fixed w-full h-screen inset-0 bg-black/70 flex items-center justify-center">
-            <div ref={searchBoxRef} className="w-[600px] max-w-[90%] bg-[#1E1E1E] rounded-3xl shadow-2xl overflow-hidden">
-                <div className="relative">
-                    <IonIcon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 text-xl" />
-                    <input
-                        type="text"
-                        value={query}
-                        onChange={e => setQuery(e.target.value)}
-                        className="w-full bg-transparent text-gray-400 text-lg p-4 px-12 focus:outline-none"
-                        placeholder="검색"
-                        autoFocus
-                    />
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                        {query && (
-                            <button
-                                onClick={() => setQuery('')}
-                                className="p-1 hover:bg-gray-700 rounded"
-                            >
-                                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        )}
-                        {isLoading && (
-                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-400 border-t-white" />
-                        )}
-                    </div>
-                </div>
-                <div ref={resultsContainerRef} className={`max-h-[400px] overflow-y-auto p-2 ${results.length === 0 ? 'hidden' : ''}`}>
-                    {results.map((result, index) => (
-                        result.highlight.title ? (
-                            <Link
-                                key={result.id}
-                                ref={index === selectedIndex ? selectedItemRef : null}
-                                onClick={onClose}
-                                href={`/${result.id}`}
-                                className={`block p-3 hover:bg-gray-700/20 no-underline rounded-2xl ${index === selectedIndex ? 'bg-gray-700/50' : ''
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 flex items-center justify-center bg-gray-600 rounded-lg aspect-square">
-                                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 className="m-0 text-white text-sm">{result.highlight.title.replaceAll("<gzkNfoUU>", "").replaceAll("</gzkNfoUU>", "")}</h3>
-                                    </div>
-                                </div>
-                            </Link>
-                        ) :
-                            (
-                                <Link
-                                    key={result.id}
-                                    ref={index === selectedIndex ? selectedItemRef : null}
-                                    href={`/${result.id}`}
-                                    onClick={onClose}
-                                    className={`block p-3 hover:bg-gray-700/20 no-underline rounded-2xl ${index === selectedIndex ? 'bg-gray-700/50' : ''
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 flex items-center justify-center bg-gray-600 rounded-lg aspect-square">
-                                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <h3 className="m-0 text-white text-sm">{result.title}</h3>
-                                            {result.highlight.text &&
-                                                <p className="m-0 text-gray-400 text-sm" dangerouslySetInnerHTML={{ __html: result.highlight.text.replaceAll("<gzkNfoUU>", "<b>").replaceAll("</gzkNfoUU>", "</b>") }} />
-
-                                            }
-                                        </div>
-                                    </div>
-                                </Link>
-                            )
-
-                    ))}
-                </div>
-                <div className="p-4 hidden md:block">
-                    <div className="flex items-center justify-end gap-4 text-xs text-gray-400">
-                        <span className="flex items-center gap-1">
-                            <kbd className="px-2 py-1 bg-gray-700 rounded text-xs mr-1">/</kbd>
-                            <span>검색창 열기</span>
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <kbd className="px-2 py-1 bg-gray-700 rounded text-xs">↑</kbd>
-                            <kbd className="px-2 py-1 bg-gray-700 rounded text-xs mr-1">↓</kbd>
-                            <span>탐색</span>
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <kbd className="px-2 py-1 bg-gray-700 rounded text-xs mr-1">Enter</kbd>
-                            <span>이동</span>
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <kbd className="px-2 py-1 bg-gray-700 rounded text-xs mr-1">Esc</kbd>
-                            <span>닫기</span>
-                        </span>
-                    </div>
-                </div>
-            </div>
+          }} />
+        {query && <button type="button" aria-label="검색어 지우기" onClick={() => { setQuery(""); inputRef.current?.focus(); }}>지우기</button>}
+        <button type="button" aria-label="검색 닫기" onClick={onClose}>닫기</button>
+      </div>
+      <div className="global-search-scopes" role="group" aria-label="검색 범위">
+        {SEARCH_SCOPES.map((value) => <button key={value} type="button" aria-pressed={scope === value}
+          onClick={() => { setScope(value); setFolder(""); }}>{scopeLabels[value]}</button>)}
+      </div>
+      {folder && <button className="global-search-folder" type="button" onClick={() => setFolder("")}>{folder.replaceAll("/", " / ")} · 폴더 제한 해제</button>}
+      <motion.div className="global-search-body" layoutScroll>
+        <div role="status" className="global-search-status">
+          {!query.trim() ? "제목과 본문을 검색합니다. AI 답변은 질문하기를 눌렀을 때만 생성합니다." : error ? `${results.length ? `검색 결과 ${results.length}개 · ` : ""}${error}` : loading ? results.length ? `검색 결과 ${results.length}개 · 갱신 중…` : "검색 중입니다…" : `검색 결과 ${results.length}개`}
+          {partial && <p>본문 검색에 연결하지 못해 제목 검색 결과만 표시합니다.</p>}
         </div>
-    );
+        {query.trim() && !loading && !error && !results.length && <p className="global-search-status">일치하는 글이 없습니다. 검색어 또는 범위를 바꿔 보세요.</p>}
+        <motion.div className="global-search-results" aria-label="검색 결과" aria-busy={loading}>
+          <AnimatePresence initial={false} mode="popLayout">
+          {results.map((result, index) => <SearchResultItem key={resultKey(query, result.id)} result={result}
+            active={selected === index} reducedMotion={!!reducedMotion} onClose={onClose} onFocus={() => setSelected(index)}
+            ref={(element) => {
+              const key = resultKey(query, result.id);
+              if (element) linksRef.current.set(key, element); else linksRef.current.delete(key);
+            }} />)}
+          </AnimatePresence>
+        </motion.div>
+        {(agentLoading || answer || agentError) && <section className="global-search-answer" aria-label="AI 답변" aria-busy={agentLoading}>
+          <h3>AI 답변</h3>
+          {agentLoading && <p role="status">블로그에서 근거를 확인하고 있습니다…</p>}
+          {agentError && <p role="alert">{agentError}</p>}
+          {answer && <p className="global-search-answer-text">{answer}</p>}
+          {!!sources.length && <div aria-label="참고한 문서">{sources.map((source, index) => <Link key={source.id} href={source.href}
+            onClick={(event) => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey) onClose(); }}>[{index + 1}] {source.title}</Link>)}</div>}
+        </section>}
+      </motion.div>
+      <div className="global-search-footer">
+        <button type="button" disabled={!query.trim() || agentLoading} onClick={() => void askAgent()}>AI에게 질문하기 <kbd>⌘/Ctrl ↵</kbd></button>
+        {agentLoading && <button type="button" onClick={() => { agentRef.current?.abort(); setAgentLoading(false); setAnswer(""); setSources([]); }}>중지</button>}
+      </div>
+    </motion.div>
+  </motion.div>;
 }

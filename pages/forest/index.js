@@ -1,6 +1,7 @@
 import { PageHead } from "../../components/PageHead";
 import { ForestExplorer } from "../../components/Forest/ForestExplorer";
 import { getDatabase } from "../../utils/get-database";
+import { folderPathFromProperty } from "../../utils/search/folders";
 
 const FOREST_DATABASE_ID = "ff85c8c8bc3345babf2f7970d86506d4";
 
@@ -23,6 +24,7 @@ export async function getStaticProps() {
     const documents = data.results.map((page) => ({
       id: page.id,
       title: propertyText(page.properties?.["이름"]) || "제목 없는 문서",
+      folderPath: folderPathFromProperty(page.properties?.["forest_폴더"]),
       lastEditedTime: page.last_edited_time,
       createdTime: page.created_time,
     }));

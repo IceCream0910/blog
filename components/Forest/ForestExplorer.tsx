@@ -1,5 +1,4 @@
 import IonIcon from "@reacticons/ionicons";
-import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/router";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { NotionRenderer } from "../../packages/notionx";
@@ -7,13 +6,9 @@ import { useDarkMode } from "../../hooks/useDarkMode";
 import { Code, Collection, Equation, Modal } from "../../utils/notion-components";
 import { Backlinks } from "../Backlinks";
 import Comments from "../Comments";
-
-type ForestDocument = {
-  id: string;
-  title: string;
-  lastEditedTime: string;
-  createdTime: string;
-};
+import { ForestTree } from "./ForestTree";
+import { folderAncestors, type ForestDocument } from "../../utils/search/folders";
+import { useSearch } from "../Search/SearchProvider";
 
 type ForestExplorerProps = {
   documents: ForestDocument[];
@@ -36,7 +31,9 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
   const router = useRouter();
   const darkMode = useDarkMode();
   const [selectedId, setSelectedId] = useState(documents[0]?.id || "");
-  const [query, setQuery] = useState("");
+  const openSearch = useSearch();
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [foldersReady, setFoldersReady] = useState(false);
   const [sortOption, setSortOption] = useState<SortOption>("edited-desc");
   const [recordMap, setRecordMap] = useState<any>(null);
   const [recordMapDocumentId, setRecordMapDocumentId] = useState("");
@@ -45,6 +42,7 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
   const [selectionInitialized, setSelectionInitialized] = useState(false);
   const cacheRef = useRef(new Map<string, any>());
   const documentItemRefs = useRef(new Map<string, HTMLButtonElement>());
+  const folderItemRefs = useRef(new Map<string, HTMLButtonElement>());
   const listRef = useRef<HTMLElement | null>(null);
   const listScrollTopRef = useRef<number>(0);
   const previewScrollRef = useRef<HTMLDivElement | null>(null);
@@ -53,18 +51,41 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
   const selectedDocument = documents.find((document) => document.id === selectedId) || documents[0];
   const renderedDocument = documents.find((document) => document.id === recordMapDocumentId) || selectedDocument;
   const visibleDocuments = useMemo(() => {
-    const normalized = query.trim().toLocaleLowerCase("ko-KR");
-    const filtered = normalized
-      ? documents.filter((document) => document.title.toLocaleLowerCase("ko-KR").includes(normalized))
-      : documents;
-
-    return [...filtered].sort((a, b) => {
+    return [...documents].sort((a, b) => {
       if (sortOption === "title-asc") return a.title.localeCompare(b.title, "ko-KR");
       if (sortOption === "created-desc") return new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime();
       if (sortOption === "edited-asc") return new Date(a.lastEditedTime).getTime() - new Date(b.lastEditedTime).getTime();
       return new Date(b.lastEditedTime).getTime() - new Date(a.lastEditedTime).getTime();
     });
-  }, [documents, query, sortOption]);
+  }, [documents, sortOption]);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem("forest_expanded_folders") || "[]");
+      if (Array.isArray(saved)) setExpanded(new Set(saved.filter((path) => typeof path === "string")));
+    } catch { /* Storage may be unavailable in private browsing. */ }
+    setFoldersReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!foldersReady || !selectionInitialized) return;
+    setExpanded((previous) => new Set([...previous, ...folderAncestors(selectedDocument?.folderPath)]));
+  }, [foldersReady, selectionInitialized, selectedDocument?.id, selectedDocument?.folderPath]);
+
+  useEffect(() => {
+    if (!foldersReady) return;
+    try { sessionStorage.setItem("forest_expanded_folders", JSON.stringify([...expanded])); } catch {}
+  }, [expanded, foldersReady]);
+
+  const revealFolder = (path: string) => {
+    setExpanded((previous) => new Set([...previous, ...folderAncestors(path)]));
+    if (window.matchMedia("(max-width: 760px)").matches) closeMobileDocument();
+    requestAnimationFrame(() => {
+      const item = folderItemRefs.current.get(path);
+      item?.scrollIntoView({ block: "nearest" });
+      item?.focus({ preventScroll: true });
+    });
+  };
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -123,7 +144,7 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
 
     listScrollTopRef.current = list.scrollTop;
     sessionStorage.setItem("forest_list_scroll_top", String(list.scrollTop));
-  }, [mobileDocumentOpen, selectedId, selectionInitialized, sortOption, visibleDocuments]);
+  }, [mobileDocumentOpen, selectedId, selectionInitialized, sortOption, visibleDocuments, expanded]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -199,20 +220,10 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
   return (
     <main className={`forest-explorer container ${mobileDocumentOpen ? "is-mobile-document" : ""}`}>
       <aside className="forest-sidebar" aria-label="문서 목록">
-        <label className="forest-search">
+        <button type="button" className="forest-search" onClick={() => openSearch({ scope: "document" })}>
           <IonIcon name="search-outline" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="문서 검색"
-            aria-label="문서 검색"
-          />
-          {query && (
-            <button type="button" onClick={() => setQuery("")} aria-label="검색어 지우기">
-              <IonIcon name="close-circle" />
-            </button>
-          )}
-        </label>
+          <span>문서 검색</span><kbd>/</kbd>
+        </button>
 
         <div className="forest-folder-label">
           <IonIcon name="folder-open-outline" />
@@ -241,39 +252,13 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
             }
           }}
         >
-          <AnimatePresence initial={false}>
-            {visibleDocuments.map((document) => {
-              const active = document.id === selectedDocument?.id;
-              return (
-                <motion.button
-                  layout
-                  key={document.id}
-                  type="button"
-                  className={`forest-document-item ${active ? "is-active" : ""}`}
-                  aria-current={active ? "page" : undefined}
-                  onClick={() => selectDocument(document)}
-                  ref={(element) => {
-                    if (element) documentItemRefs.current.set(document.id, element);
-                    else documentItemRefs.current.delete(document.id);
-                  }}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.18 }}
-                >
-                  <span className="forest-file-copy">
-                    <strong>{document.title}</strong>
-                    <small>
-                      <span>{formatEditedTime(document.createdTime)} 생성</span>
-                      <span>{formatEditedTime(document.lastEditedTime)} 수정</span>
-                    </small>
-                  </span>
-                  <IonIcon className="forest-file-chevron" name="chevron-forward-outline" />
-                </motion.button>
-              );
-            })}
-          </AnimatePresence>
-          {!visibleDocuments.length && <p className="forest-empty-list">일치하는 문서가 없습니다.</p>}
+          <ForestTree documents={visibleDocuments} expanded={expanded} selectedId={selectedDocument?.id}
+            onToggle={(path) => { selectionScrollModeRef.current = "preserve"; setExpanded((previous) => {
+              const next = new Set(previous);
+              if (next.has(path)) next.delete(path); else next.add(path);
+              return next;
+            }); }} onSelect={selectDocument} itemRefs={documentItemRefs} folderRefs={folderItemRefs} />
+          {!visibleDocuments.length && <p className="forest-empty-list">등록된 문서가 없습니다.</p>}
         </nav>
       </aside>
 
@@ -293,6 +278,12 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
             <div className="forest-preview-scroll" ref={previewScrollRef}>
               <div className="forest-document-heading">
                 <div>
+                  {!!renderedDocument.folderPath && <nav className="forest-breadcrumb" aria-label="문서 폴더">
+                    {folderAncestors(renderedDocument.folderPath).map((path, index) => <span key={path}>
+                      {index > 0 && <span aria-hidden="true"> / </span>}
+                      <button type="button" onClick={() => revealFolder(path)}>{path.split("/").pop()}</button>
+                    </span>)}
+                  </nav>}
                   <h2>{renderedDocument.title}</h2>
                   <div className="forest-document-dates">
                     <p><IonIcon name="add-circle-outline" /> {formatEditedTime(renderedDocument.createdTime)} 생성</p>
@@ -317,6 +308,7 @@ export function ForestExplorer({ documents }: ForestExplorerProps) {
                   </button>
                 </div>
               )}
+              {!error && recordMapDocumentId !== selectedId && <p className="forest-empty-list" role="status">선택한 문서를 불러오는 중입니다…</p>}
               {recordMap && (
                 <article
                   key={recordMapDocumentId}

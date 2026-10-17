@@ -11,9 +11,10 @@ export function blockValue(entry: any) {
   return entry?.value || entry;
 }
 
-export async function fetchNotionBacklinks(currentId: string) {
+export async function fetchNotionBacklinks(currentId: string, signal?: AbortSignal) {
   const response = await fetch("https://app.notion.com/api/v3/getBacklinksForBlockInitial", {
     method: "POST",
+    signal,
     headers: {
       "content-type": "application/json",
       cookie: `token_v2=${process.env.NOTION_TOKEN};`,

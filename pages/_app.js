@@ -3,6 +3,7 @@ import "../styles/globals.css";
 import '../styles/notion.css'
 import '../styles/recap.css'
 import '../styles/forest.css'
+import '../styles/search.css'
 import '../styles/graph.css'
 import '../styles/post-narration.css'
 import { Header } from "../components/Header";
@@ -11,6 +12,7 @@ import { Spinner } from "../components/Spinner";
 import { motion } from 'framer-motion';
 
 import { ThemeProvider } from "../hooks/useDarkMode";
+import { SearchProvider } from "../components/Search/SearchProvider";
 
 export const currentPostContext = createContext({
   title: '',
@@ -53,6 +55,7 @@ export default function App({ Component, pageProps }) {
 
   return (
     <ThemeProvider>
+      <SearchProvider>
       <currentPostContext.Provider value={{ title, postId, setTitle, setPostId }}>
         {loading ? title ? (
           <motion.div
@@ -92,6 +95,7 @@ export default function App({ Component, pageProps }) {
         )}
         {router.pathname !== '/graph' && <Header />}
       </currentPostContext.Provider>
+      </SearchProvider>
     </ThemeProvider>
   );
 }

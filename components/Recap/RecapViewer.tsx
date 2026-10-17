@@ -5,6 +5,7 @@ import { NotionRenderer } from "../../packages/notionx";
 import { Code, Collection, Equation, Modal } from "../../utils/notion-components";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import { getGradientTextColor, getTextGradient } from "../../utils/text-gradient";
+import { useRouter } from "next/router";
 
 type RecapItem = Record<string, string>;
 type MusicMetadata = {
@@ -696,8 +697,14 @@ function RecapHelpOverlay({ onClose }: { onClose: () => void }) {
 }
 
 export function RecapViewer({ posts }: { posts: RecapPost[] }) {
+  const router = useRouter();
   const [postIndex, setPostIndex] = useState(0);
   const [slideIndex, setSlideIndex] = useState(0);
+  useEffect(() => {
+    if (!router.isReady || typeof router.query.document !== "string") return;
+    const index = posts.findIndex((post) => post.id.replace(/-/g, "") === (router.query.document as string).replace(/-/g, ""));
+    if (index >= 0) { setPostIndex(index); setSlideIndex(0); }
+  }, [router.isReady, router.query.document, posts]);
   const [bodySlides, setBodySlides] = useState<BodySlide[]>([]);
   const [bodySlidesReady, setBodySlidesReady] = useState(false);
   const [recapData, setRecapData] = useState<Record<string, { sections: RecapSection[]; recordMap: any; narration?: NarrationManifest }>>({});

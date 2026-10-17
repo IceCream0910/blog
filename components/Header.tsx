@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useHotkeys } from "react-hotkeys-hook";
-import { Search } from "./Search";
+import { useSearch } from "./Search/SearchProvider";
 import IonIcon from '@reacticons/ionicons';
 import { AnimatePresence, motion } from "framer-motion";
 import { useTheme } from "../hooks/useDarkMode";
@@ -14,7 +14,7 @@ const navigation = [
 ];
 
 export const Header: React.FC = () => {
-    const [showSearch, setShowSearch] = React.useState(false);
+    const openSearch = useSearch();
     const [showMenu, setShowMenu] = React.useState(false);
     const [showThemeMenu, setShowThemeMenu] = React.useState(false);
     const [mounted, setMounted] = React.useState(false);
@@ -26,20 +26,15 @@ export const Header: React.FC = () => {
     }, []);
 
     useHotkeys('/', event => {
-        setShowSearch(true);
+        openSearch();
         event.preventDefault();
         event.stopPropagation();
     });
 
     useHotkeys('esc', () => {
-        setShowSearch(false);
         setShowMenu(false);
         setShowThemeMenu(false);
     }, { enableOnFormTags: true });
-
-    const handleCloseSearch = () => {
-        setShowSearch(false);
-    }
 
     React.useEffect(() => {
         setShowMenu(false);
@@ -60,7 +55,7 @@ export const Header: React.FC = () => {
     return (
         <header
             className={showThemeMenu ? "header-menu-open" : undefined}
-            style={{ mask: showSearch || showThemeMenu ? 'unset' : 'linear-gradient(to bottom, var(--background) 45%, rgba(0, 0, 0, 0) 100%)', WebkitMask: showSearch || showThemeMenu ? 'unset' : 'linear-gradient(to bottom, var(--background) 45%, rgba(0, 0, 0, 0) 100%)' }}>
+            style={{ mask: showThemeMenu ? 'unset' : 'linear-gradient(to bottom, var(--background) 45%, rgba(0, 0, 0, 0) 100%)', WebkitMask: showThemeMenu ? 'unset' : 'linear-gradient(to bottom, var(--background) 45%, rgba(0, 0, 0, 0) 100%)' }}>
             <div className="container mx-auto px-4 py-8 header-content">
                 <div className="header-leading">
                     <button
@@ -93,7 +88,7 @@ export const Header: React.FC = () => {
                         type="button"
                         className="header-search-button"
                         aria-label="검색 열기"
-                        onClick={() => setShowSearch(true)}
+                        onClick={() => openSearch()}
                     >
                         <IonIcon name="search" style={{ marginTop: '4px' }} />
                     </button>
@@ -228,9 +223,6 @@ export const Header: React.FC = () => {
                 document.body
             )}
 
-            {showSearch && (
-                <Search onClose={handleCloseSearch} />
-            )}
         </header>
     );
 }
