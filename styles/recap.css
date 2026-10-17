@@ -53,51 +53,19 @@
   z-index: 0;
   inset: 0;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.34), transparent 30%),
-    radial-gradient(circle at 82% 74%, color-mix(in srgb, var(--recap-cover-to) 68%, #111), transparent 42%),
-    linear-gradient(135deg, var(--recap-cover-from), var(--recap-cover-to));
   pointer-events: none;
 }
 
-.recap-cover-background::before,
-.recap-cover-background::after,
-.recap-cover-background>span,
-.recap-cover-background>i {
-  position: absolute;
-  content: "";
-}
-
-.recap-cover-background::before {
-  inset: 0;
-  opacity: 0.13;
-  background-image: repeating-radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.72) 0 0.6px, transparent 0.8px 5px);
-  background-size: 7px 7px;
-  mix-blend-mode: soft-light;
+.recap-cover-background>div {
+  width: 100%;
+  height: 100%;
 }
 
 .recap-cover-background::after {
+  content: "";
+  position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.08), transparent 30%, transparent 68%, rgba(0, 0, 0, 0.28));
-}
-
-.recap-cover-background>span {
-  top: 18%;
-  right: -8vw;
-  width: min(44vw, 620px);
-  aspect-ratio: 1;
-  border: 1px solid color-mix(in srgb, var(--recap-cover-foreground) 24%, transparent);
-  border-radius: 999px;
-}
-
-.recap-cover-background>i {
-  bottom: -12vw;
-  left: -8vw;
-  width: min(34vw, 480px);
-  aspect-ratio: 1;
-  border: 1px solid color-mix(in srgb, var(--recap-cover-foreground) 20%, transparent);
-  border-radius: 38% 62% 55% 45%;
-  transform: rotate(24deg);
+  background: linear-gradient(180deg, #000a, transparent 28%, #0009 48%, #000b 100%);
 }
 
 .recap-scene-background-music.is-gradient-only {
@@ -1691,7 +1659,7 @@ body:has(.recap-shell.has-recap-scene) .header-menu-button:hover {
   align-self: center;
 }
 
-.recap-body-slide .recap-rendered-block.is-narration-component + .recap-rendered-block.is-narration-component {
+.recap-body-slide .recap-rendered-block.is-narration-component+.recap-rendered-block.is-narration-component {
   margin-top: 0;
 }
 
@@ -3391,4 +3359,365 @@ body:has(.recap-help-overlay) header {
   visibility: hidden;
   pointer-events: none;
   z-index: -1;
+}
+
+/* The title frame reserves the scaled ink height above the bottom notice. */
+.recap-cover.recap-cover-sky {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  width: 100%;
+  height: 100%;
+  --recap-cover-title-scale: 1.7;
+  --recap-cover-title-gap: 20px;
+  padding: 0;
+  text-align: left;
+  color: #ffcc00;
+}
+
+.recap-cover-sky h1 {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  font-size: clamp(4rem, 10vw, 9rem);
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: -.065em;
+  text-align: left;
+  color: #ffcc00;
+  transform: scaleY(var(--recap-cover-title-scale));
+  transform-origin: left bottom;
+  text-shadow: 0 2px 22px #0002;
+  overflow-wrap: anywhere;
+}
+
+.recap-cover-line {
+  display: block;
+  animation: recap-line-appear 0s both;
+}
+
+@keyframes recap-line-appear {
+  from {
+    visibility: hidden;
+  }
+
+  to {
+    visibility: visible;
+  }
+}
+
+.recap-cover-entry {
+  position: absolute;
+  left: 0;
+  bottom: 12px;
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  color: white;
+  text-shadow: 0 1px 4px #0008;
+}
+
+.recap-cover-entry button {
+  min-height: 44px;
+  padding: 8px 0;
+  font-size: 1rem;
+  font-weight: 650;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.recap-cover-entry button:disabled {
+  cursor: wait;
+  opacity: .8;
+}
+
+.recap-cover-entry span {
+  font-size: .8rem;
+}
+
+.recap-cover-entry span:empty {
+  display: none;
+}
+
+.recap-cover-entry small {
+  position: static;
+  font-size: .7rem;
+  opacity: .8;
+}
+
+.recap-cover-entry button:focus-visible,
+.recap-stack-controls button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
+
+.recap-body-slide.recap-layout-stack.has-mixed-media .recap-notion-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr);
+  gap: clamp(24px, 3vw, 42px);
+  align-items: center;
+}
+
+.recap-image-stack {
+  width: 100%;
+  min-width: 0;
+  padding: 28px 18px 0;
+}
+
+.recap-stack-cards {
+  position: relative;
+  width: 100%;
+  height: var(--recap-visual-max-height);
+  isolation: isolate;
+}
+
+.recap-stack-card {
+  position: absolute;
+  inset: 0;
+  transform-origin: center 80%;
+  border: 3px solid #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #202421;
+  box-shadow: 0 8px 24px #0002;
+}
+
+.recap-stack-card .recap-rendered-block,
+.recap-stack-card .notion,
+.recap-stack-card .notion-asset-wrapper,
+.recap-stack-card .notion-image {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.recap-body-slide .recap-stack-card .notion-asset-wrapper img {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  object-fit: cover !important;
+  border-radius: 0 !important;
+}
+
+.recap-stack-card .notion-asset-caption {
+  display: none;
+}
+
+.recap-stack-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: .8rem;
+}
+
+.recap-stack-controls button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.recap-body-slide.recap-layout-immersive {
+  position: relative;
+  height: 100%;
+  isolation: isolate;
+  color: white;
+}
+
+.recap-body-slide.recap-layout-immersive .recap-notion-content {
+  position: relative;
+  height: 100%;
+  display: flex;
+  justify-content: flex-end;
+  overflow: hidden;
+  padding: clamp(20px, 4vw, 48px);
+}
+
+.recap-layout-immersive .recap-media-pane {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  max-height: none;
+  overflow: hidden;
+}
+
+.recap-layout-immersive .recap-media-pane::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  background: linear-gradient(180deg, #0002, #0006 35%, #000d 100%);
+}
+
+.recap-layout-immersive .recap-media-pane>.recap-rendered-block,
+.recap-layout-immersive .recap-media-pane .notion,
+.recap-layout-immersive .recap-media-pane .notion-asset-wrapper,
+.recap-layout-immersive .recap-media-pane .notion-image {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.recap-body-slide.recap-layout-immersive .recap-media-pane .notion-asset-wrapper img {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  object-fit: cover !important;
+  border-radius: 0 !important;
+}
+
+.recap-layout-immersive .recap-copy-pane {
+  position: relative;
+  z-index: 12;
+  max-height: var(--recap-copy-max-height);
+  width: min(100%, 780px);
+  align-self: flex-start;
+  overflow-y: auto;
+}
+
+.recap-layout-immersive .is-textual .notion,
+.recap-layout-immersive .is-textual .notion-text {
+  color: white;
+}
+
+.recap-layout-immersive .recap-image-stack {
+  height: 100%;
+  padding: 0;
+}
+
+.recap-layout-immersive .recap-stack-cards {
+  height: calc(100% - 56px);
+}
+
+.recap-layout-immersive .recap-stack-controls {
+  position: relative;
+  z-index: 15;
+}
+
+.recap-layout-immersive .recap-stack-card {
+  border: 0;
+  border-radius: 0;
+}
+
+.recap-layout-immersive .notion-asset-caption {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .recap-body-slide.recap-layout-stack.has-mixed-media .recap-notion-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .recap-layout-stack .recap-media-pane {
+    order: -1;
+    width: 100%;
+  }
+
+  .recap-layout-stack .recap-copy-pane {
+    max-height: var(--recap-copy-max-height);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 639px) {
+  .recap-cover.recap-cover-sky {
+    padding: 0;
+  }
+
+  .recap-cover-sky h1 {
+    font-size: clamp(3.4rem, 15vw, 5.6rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recap-cover-line {
+    animation: none;
+  }
+}
+
+.recap-stack-card .notion-asset-wrapper>div,
+.recap-layout-immersive .recap-media-pane .notion-asset-wrapper>div {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+}
+
+.recap-layout-immersive .recap-media-pane {
+  background: #151715;
+}
+
+.recap-body-slide .recap-image-stack .recap-stack-card .recap-rendered-block.is-visual,
+.recap-body-slide.recap-layout-immersive .recap-media-pane>.recap-rendered-block.is-visual,
+.recap-body-slide .recap-image-stack .recap-stack-card .notion-asset-wrapper-image,
+.recap-body-slide.recap-layout-immersive .recap-media-pane .notion-asset-wrapper-image,
+.recap-body-slide .recap-image-stack .recap-stack-card .notion-asset-wrapper-image>div,
+.recap-body-slide.recap-layout-immersive .recap-media-pane .notion-asset-wrapper-image>div {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+}
+
+.recap-body-slide .recap-image-stack .recap-stack-card .notion-asset-wrapper-image img,
+.recap-body-slide.recap-layout-immersive .recap-media-pane .notion-asset-wrapper-image img {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  object-fit: cover !important;
+  border-radius: 0 !important;
+}
+
+.recap-layout-immersive .recap-stack-cards {
+  height: 100%;
+}
+
+.recap-layout-immersive .recap-stack-controls {
+  position: absolute;
+  top: 140px;
+  right: 20px;
+  z-index: 15;
+  margin: 0;
+  padding-inline: 4px;
+  border-radius: 10px;
+  background: #0009;
+  color: white;
+}
+
+.recap-shell:is(.has-cover-scene, .has-immersive-scene) .recap-stage {
+  height: 100%;
+}
+.recap-cover-titles {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(12px + var(--recap-cover-entry-height, 16px) + var(--recap-cover-title-gap));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--recap-cover-title-gap);
+  text-align: left;
+}
+.recap-cover-title-frame { position: relative; width: 100%; }
+.recap-cover-title-frame h1 { position: absolute; bottom: 0; left: 0; }
+.recap-cover-sky .recap-cover-subtitle {
+  margin: 0;
+  font-size: clamp(1.15rem, 3vw, 2rem);
+  line-height: 1.3;
+  font-weight: 750;
+  color: inherit;
+  overflow-wrap: anywhere;
 }

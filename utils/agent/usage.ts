@@ -2,8 +2,51 @@ import { createHash, createHmac } from "node:crypto";
 import { isIP } from "node:net";
 import type { NextApiRequest } from "next";
 
+export function agentModel() {
+  return process.env.SEARCH_AGENT_MODEL?.trim() || "gpt-5.6-terra";
+}
+
+export function missingAgentSettings() {
+  const missing = ["OPENAI_API_KEY", "SEARCH_AGENT_IP_SALT"].filter((key) => !process.env[key]?.trim());
+  if (process.env.UPSTASH_REDIS_REST_URL?.trim() || process.env.UPSTASH_REDIS_REST_TOKEN?.trim()) {
+    for (const key of ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"]) if (!process.env[key]?.trim()) missing.push(key);
+  }
+  return missing;
+}
+
 export function agentConfigured() {
-  return !!(process.env.OPENAI_API_KEY && process.env.SEARCH_AGENT_MODEL && process.env.SEARCH_AGENT_IP_SALT && process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+  return missingAgentSettings().length === 0;
+}
+
+function sharedStorageConfigured() {
+  return Boolean(process.env.UPSTASH_REDIS_REST_URL?.trim() && process.env.UPSTASH_REDIS_REST_TOKEN?.trim());
+}
+
+// Vercel instances may restart or scale independently; these limits are local to this instance.
+const memoryUsage = new Map<number, { total: number; ips: Map<string, number> }>();
+const memoryAnswers = new Map<string, { value: string; expiresAt: number }>();
+const MAX_MEMORY_ANSWERS = 100;
+const MAX_ANSWER_BYTES = 64 * 1024;
+
+export async function getAnswerCache(key: string): Promise<string | null> {
+  if (sharedStorageConfigured()) return redisCommand("GET", key);
+  const now = Date.now();
+  for (const [id, item] of memoryAnswers) if (item.expiresAt <= now) memoryAnswers.delete(id);
+  const cached = memoryAnswers.get(key);
+  if (!cached) return null;
+  memoryAnswers.delete(key);
+  memoryAnswers.set(key, cached);
+  return cached.value;
+}
+
+export async function setAnswerCache(key: string, value: string) {
+  if (Buffer.byteLength(value, "utf8") > MAX_ANSWER_BYTES) return;
+  if (sharedStorageConfigured()) { await redisCommand("SET", key, value, "EX", 600); return; }
+  const now = Date.now();
+  for (const [id, item] of memoryAnswers) if (item.expiresAt <= now) memoryAnswers.delete(id);
+  memoryAnswers.delete(key);
+  while (memoryAnswers.size >= MAX_MEMORY_ANSWERS) memoryAnswers.delete(memoryAnswers.keys().next().value!);
+  memoryAnswers.set(key, { value, expiresAt: now + 600_000 });
 }
 
 export async function redisCommand(...command: (string | number)[]) {
@@ -28,6 +71,16 @@ export function clientAddress(req: NextApiRequest) {
 export async function reserveUsage(req: NextApiRequest) {
   const address = createHmac("sha256", process.env.SEARCH_AGENT_IP_SALT!).update(clientAddress(req)).digest("hex");
   const hour = Math.floor(Date.now() / 3_600_000);
+  if (!sharedStorageConfigured()) {
+    for (const key of memoryUsage.keys()) if (key !== hour) memoryUsage.delete(key);
+    const usage = memoryUsage.get(hour) || { total: 0, ips: new Map<string, number>() };
+    const used = usage.ips.get(address) || 0;
+    if (used >= 15 || usage.total >= 100) return false;
+    usage.total++;
+    usage.ips.set(address, used + 1);
+    memoryUsage.set(hour, usage);
+    return true;
+  }
   const script = `
     local ip = tonumber(redis.call('GET', KEYS[1]) or '0')
     local total = tonumber(redis.call('GET', KEYS[2]) or '0')
@@ -40,5 +93,5 @@ export async function reserveUsage(req: NextApiRequest) {
 }
 
 export function answerCacheKey(question: string, scope: string, folder: string, revision: string) {
-  return `blog:agent:answer:v1:${createHash("sha256").update(JSON.stringify([question.trim().toLowerCase(), scope, folder, revision, process.env.SEARCH_AGENT_MODEL])).digest("hex")}`;
+  return `blog:agent:answer:v1:${createHash("sha256").update(JSON.stringify([question.trim().toLowerCase(), scope, folder, revision, agentModel()])).digest("hex")}`;
 }

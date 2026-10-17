@@ -8,7 +8,7 @@ require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileMo
 }).outputText, filename);
 const { normalizeFolderPath, folderPathFromProperty, folderAncestors, buildFolderTree } = require('../utils/search/folders.ts');
 const { normalizePage, searchContent, inScope } = require('../utils/search/search-service.ts');
-const { clientAddress, reserveUsage, agentConfigured, answerCacheKey } = require('../utils/agent/usage.ts');
+const { clientAddress, reserveUsage, agentConfigured, answerCacheKey, agentModel, missingAgentSettings, getAnswerCache, setAnswerCache } = require('../utils/agent/usage.ts');
 const { createAgentTools } = require('../utils/agent/tools.ts');
 const { NotionAPI } = require('notion-client');
 const { runSearchAgent } = require('../utils/agent/search-agent.ts');
@@ -106,6 +106,7 @@ test('rate limiting ignores spoofed forwarding off Vercel and fails closed', asy
     assert.equal(clientAddress(req), '5.6.7.8');
     process.env.SEARCH_AGENT_IP_SALT = 'test-only-salt';
     process.env.UPSTASH_REDIS_REST_URL = 'https://example.invalid';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
     global.fetch = async (_url, init) => {
       const command = JSON.parse(init.body);
       assert.equal(command[0], 'EVAL');
@@ -151,12 +152,14 @@ test('Responses function loop reads evidence then streams answer with server-own
   const events = [];
   let rounds = 0;
   try {
-    process.env.OPENAI_API_KEY = 'test-no-network'; process.env.SEARCH_AGENT_MODEL = 'test';
+    process.env.OPENAI_API_KEY = 'test-no-network'; delete process.env.SEARCH_AGENT_MODEL;
     NotionAPI.prototype.getPage = async (id) => ({ block: { [id]: { value: { type: 'page', content: ['text'] } }, text: { value: { type: 'text', properties: { title: [['KMP shared code']] } } } } });
     global.fetch = async (url, init) => {
       if (!String(url).includes('api.openai.com')) return Response.json({ results: [], recordMap: {} });
       const body = JSON.parse(init.body);
       assert.equal(body.store, false);
+      assert.equal(body.model, "gpt-5.6-terra");
+      assert.deepEqual(body.reasoning, { effort: "none" });
       if (!body.stream) {
         rounds++;
         const name = rounds === 1 ? 'search_content' : 'read_document';
@@ -168,7 +171,13 @@ test('Responses function loop reads evidence then streams answer with server-own
     const result = await runSearchAgent({ question: 'KMP?', scope: 'document', folder: '', catalog: [doc], signal: new AbortController().signal, emit: (event) => events.push(event) });
     assert.equal(result.answer, '공유 코드를 사용합니다. [1]');
     assert.deepEqual(result.sources.map((item) => item.href), [doc.href]);
-    assert.equal(events[0].type, 'sources');
+    assert.ok(events.some(event => event.type === 'sources'));
+    const progress = events.filter(event => event.type === 'progress' && event.kind === 'tool');
+    assert.deepEqual(progress.map(event => event.state), ['running', 'completed', 'running', 'completed']);
+    assert.equal(progress[0].label, '공개 글 검색');
+    assert.equal(progress[2].label, '문서 본문 읽기');
+    assert.ok(!JSON.stringify(progress).includes('KMP shared code'));
+    assert.ok(events.findIndex(event => event.type === 'progress') < events.findIndex(event => event.type === 'delta'));
     assert.equal(rounds, 3);
   } finally { global.fetch = originalFetch; NotionAPI.prototype.getPage = originalPage; process.env = previous; }
 });
@@ -217,4 +226,87 @@ test('search-result cache expires, is bounded, and keeps valid empty scoped resp
   for (let i = 0; i < 25; i++) cache.set(`query-${i}`, 'all', '', { results: [doc], partial: false }, 70000);
   assert.equal(cache.get('query-0', 'all', '', 70001), undefined);
   assert.equal(cache.get('query-24', 'all', '', 70001).results.length, 1);
+});
+
+function memoryAgentEnvironment() {
+  Object.assign(process.env, { OPENAI_API_KEY: 'test-no-paid-calls', SEARCH_AGENT_IP_SALT: 'memory-test-salt' });
+  for (const key of ['SEARCH_AGENT_MODEL', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN', 'VERCEL']) delete process.env[key];
+}
+
+test('Redis-free configuration needs only key and salt, with the requested default model', () => {
+  const previous = { ...process.env };
+  try {
+    memoryAgentEnvironment();
+    assert.equal(agentConfigured(), true);
+    assert.equal(agentModel(), 'gpt-5.6-terra');
+    process.env.SEARCH_AGENT_MODEL = ' custom-model ';
+    assert.equal(agentModel(), 'custom-model');
+    process.env.UPSTASH_REDIS_REST_URL = 'https://example.invalid';
+    assert.deepEqual(missingAgentSettings(), ['UPSTASH_REDIS_REST_TOKEN']);
+    assert.equal(agentConfigured(), false);
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.SEARCH_AGENT_IP_SALT;
+    assert.equal(agentConfigured(), false);
+  } finally { process.env = previous; }
+});
+
+test('memory limits reserve synchronously under concurrency and reset next hour', async () => {
+  const previous = { ...process.env }, clock = Date.now, originalFetch = global.fetch;
+  let now = 3_600_000 * 900000;
+  try {
+    memoryAgentEnvironment(); Date.now = () => now;
+    global.fetch = async () => { throw new Error('Redis must not be called'); };
+    const req = (ip) => ({headers: {}, socket: {remoteAddress: ip}});
+    const results = await Promise.all(Array.from({length: 30}, () => reserveUsage(req('127.0.0.1'))));
+    assert.equal(results.filter(Boolean).length, 15);
+    for (let i = 2; i <= 86; i++) assert.equal(await reserveUsage(req('127.0.0.' + i)), true);
+    assert.equal(await reserveUsage(req('127.0.0.99')), false);
+    now += 3_600_000;
+    assert.equal(await reserveUsage(req('127.0.0.1')), true);
+  } finally { process.env = previous; Date.now = clock; global.fetch = originalFetch; }
+});
+
+test('memory answer cache expires, evicts LRU and rejects oversized values', async () => {
+  const previous = { ...process.env }, clock = Date.now;
+  let now = 3_600_000 * 900002;
+  try {
+    memoryAgentEnvironment(); Date.now = () => now;
+    for (let i = 0; i < 100; i++) await setAnswerCache('memory-' + i, 'answer-' + i);
+    assert.equal(await getAnswerCache('memory-0'), 'answer-0');
+    await setAnswerCache('memory-new', 'new');
+    assert.equal(await getAnswerCache('memory-1'), null);
+    assert.equal(await getAnswerCache('memory-0'), 'answer-0');
+    await setAnswerCache('oversized', 'x'.repeat(65 * 1024));
+    assert.equal(await getAnswerCache('oversized'), null);
+    now += 600_000;
+    assert.equal(await getAnswerCache('memory-0'), null);
+  } finally { process.env = previous; Date.now = clock; }
+});
+
+test('Vercel API streams and caches answers with no Redis or explicit model configured', async () => {
+  const previous = { ...process.env }, clock = Date.now;
+  const service = require('../utils/search/search-service.ts');
+  const agent = require('../utils/agent/search-agent.ts');
+  const catalog = service.getSearchCatalog, run = agent.runSearchAgent;
+  let calls = 0;
+  try {
+    memoryAgentEnvironment(); Date.now = () => 3_600_000 * 900003;
+    process.env.VERCEL = '1';
+    service.getSearchCatalog = async () => [];
+    agent.runSearchAgent = async ({emit}) => { calls++; emit({type:'delta', text:'test answer '.repeat(8)}); return {answer:'test answer '.repeat(8), sources:[]}; };
+    const req = {method:'POST', body:{question:'memory integration'}, headers:{'x-vercel-forwarded-for':'127.0.0.20'}, socket:{remoteAddress:'127.0.0.1'}};
+    for (let i = 0; i < 2; i++) {
+      const res = response(); await agentHandler(req, res);
+      assert.equal(res.statusCode, 200);
+      assert.ok(res.chunks.join('').includes('test answer'));
+      assert.ok(res.chunks.join('').includes('"type":"done"'));
+      if (i === 1) {
+        const deltas = res.chunks.flatMap(chunk => chunk.trim().split('\n').map(line => JSON.parse(line))).filter(event => event.type === 'delta');
+        assert.ok(deltas.length > 1);
+        assert.ok(deltas.every(event => Array.from(event.text).length <= 24));
+        assert.equal(deltas.map(event => event.text).join(''), 'test answer '.repeat(8));
+      }
+    }
+    assert.equal(calls, 1);
+  } finally { process.env = previous; Date.now = clock; service.getSearchCatalog = catalog; agent.runSearchAgent = run; }
 });

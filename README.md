@@ -469,23 +469,29 @@ Forest DB의 `forest_폴더` 텍스트 속성(API 타입: `rich_text`)에 `프�
 
 전역 검색과 Forest의 문서 검색은 `/api/search?q=검색어&type=document`를 공유합니다. `type`은 `all`, `document`, `post`, `project`, `recap`이고 선택적으로 `folder`를 지정합니다. 본문 검색 장애 시 `partial: true`와 제목 검색 결과를 반환합니다. 현재 달의 월말결산은 기존 `/recap`과 동일하게 검색에서 제외합니다.
 
-AI 검색에는 서버 환경변수 5개가 필요합니다. 클라이언트에 키를 전달하지 않습니다.
+AI 검색은 `OPENAI_API_KEY`와 `SEARCH_AGENT_IP_SALT`만으로 Vercel Node.js Function에서 동작합니다. 클라이언트에 키를 전달하지 않습니다.
 
 | 변수 | 용도 |
 | --- | --- |
 | `OPENAI_API_KEY` | OpenAI API 키 |
-| `SEARCH_AGENT_MODEL` | Responses API와 function calling을 지원하는 모델 ID |
-| `UPSTASH_REDIS_REST_URL` | 공유 사용량 제한·캐시용 Redis REST 주소 |
-| `UPSTASH_REDIS_REST_TOKEN` | 해당 Redis REST 토큰 |
+| `SEARCH_AGENT_MODEL` | 선택. 기본 `gpt-5.6-terra`, Responses API와 function calling을 지원하는 모델 ID |
+| `UPSTASH_REDIS_REST_URL` | 선택. 공유 사용량 제한·캐시용 Redis REST 주소. 토큰과 함께 설정 |
+| `UPSTASH_REDIS_REST_TOKEN` | 선택. 해당 Redis REST 토큰. 주소와 함께 설정 |
 | `SEARCH_AGENT_IP_SALT` | IP를 HMAC 처리할 충분히 긴 무작위 서버 비밀값 |
 
-설정 누락 또는 Redis 장애 시 AI endpoint는 유료 호출 전에 503을 반환합니다. 일반 검색에는 AI 설정이 필요하지 않습니다. Vercel에서는 플랫폼이 덮어쓰는 `x-vercel-forwarded-for`, 다른 서버에서는 socket peer 주소를 사용합니다. 다른 reverse proxy 아래에서는 같은 peer가 한도를 공유하므로 배포 환경에 맞는 신뢰 경계를 별도로 설정해야 합니다.
+필수 설정 누락, Redis 설정 일부 누락, 또는 설정된 Redis의 장애 시 AI endpoint는 유료 호출 전에 503을 반환합니다. 누락된 변수 이름만 서버 로그에 남깁니다. Redis 변수를 모두 생략하면 인스턴스 메모리로 사용량 제한과 캐시를 처리합니다. Vercel 인스턴스 재시작·확장 시 카운터와 캐시가 공유되거나 보존되지 않으므로, 이 모드의 시간당 100회는 사이트 전체의 엄격한 비용 상한이 아닙니다. 사이트 전체의 원자적 한도가 필요하면 Redis 주소·토큰을 함께 설정하세요. 일반 검색에는 AI 설정이 필요하지 않습니다. Vercel에서는 플랫폼이 덮어쓰는 `x-vercel-forwarded-for`, 다른 서버에서는 socket peer 주소를 사용합니다. 다른 reverse proxy 아래에서는 같은 peer가 한도를 공유하므로 배포 환경에 맞는 신뢰 경계를 별도로 설정해야 합니다.
 
-AI는 버튼 또는 ⌘/Ctrl+Enter로만 실행합니다. 질문·검색어는 최대 300자, IP별 시간당 15회, 전체 시간당 100회(캐시 조회 포함)입니다. 사용량 예약은 Redis Lua로 원자적으로 처리합니다. 도구 호출 최대 8회, 공개 문서 읽기 최대 5개, 문서당 12,000자, 계획 응답당 600토큰, 최종 답변 1,400토큰, 전체 50초 제한을 둡니다. 중지는 모델 요청도 취소합니다.
+AI는 버튼 또는 ⌘/Ctrl+Enter로만 실행합니다. 질문·검색어는 최대 300자, IP별 시간당 15회, 전체 시간당 100회(캐시 조회 포함)입니다. Redis 모드의 사용량 예약은 Lua로 원자적으로 처리합니다. 메모리 모드에서는 인스턴스별로 동기 예약하며, IP 카운터는 현재 시간대만 유지합니다. 도구 호출 최대 8회, 공개 문서 읽기 최대 5개, 문서당 12,000자, 계획 응답당 600토큰, 최종 답변 1,400토큰, 기본 GPT-5.6 모델은 지연과 제한된 토큰 예산을 고려해 reasoning effort `none`, 전체 50초 제한을 둡니다. 중지는 모델 요청도 취소합니다.
 
-질문·범위·폴더·모델·문서 수정 시각으로 구분한 답변 캐시는 Redis에 10분간 저장합니다. 시간당 전체 요청 한도로 캐시 증가량도 제한합니다. IP 원문은 저장하지 않으며 사용량 키는 2시간 후 삭제됩니다. 검색 목록 캐시는 서버 메모리에서 60초 유지합니다. AI 출처 링크는 실제 읽기에 성공한 공개 목록의 문서에서만 구성합니다. 질문과 선택한 문서 본문은 OpenAI로 전송되며 `store: false`로 요청합니다.
+질문·범위·폴더·모델·문서 수정 시각으로 구분한 답변 캐시는 선택된 저장소에 10분간 저장합니다. 메모리 답변 캐시는 최대 100개, 답변당 최대 64KiB로 제한하고 만료 및 LRU 퇴출을 적용합니다. 시간당 전체 요청 한도로 캐시 증가량도 제한합니다. IP 원문은 저장하지 않으며 사용량 키는 2시간 후 삭제됩니다. 검색 목록 캐시는 서버 메모리에서 60초 유지합니다. AI 출처 링크는 실제 읽기에 성공한 공개 목록의 문서에서만 구성합니다. 질문과 선택한 문서 본문은 OpenAI로 전송되며 `store: false`로 요청합니다.
 
-검증: `node --test tests/search.test.cjs`, `npx tsc --noEmit`, `yarn build`. 테스트의 Notion/OpenAI/Redis 호출은 가짜 응답으로 격리되며 비용이 발생하지 않습니다.
+AI 답변은 제목 3단계, 문단, 평면 목록, 강조, 인라인/블록 코드, 인용문만 렌더링합니다. HTML·이미지·임의 Markdown 링크는 실행하거나 링크로 만들지 않습니다. `[n]` 출처는 서버가 확인한 문서 목록에 있을 때만 링크로 연결합니다. 생성 중 표시하는 진행 과정은 검색 준비와 실제 도구 실행 상태이며 모델의 비공개 사고 원문이 아닙니다. 도구 이름·시작/완료·검색 결과 수·읽은 공개 문서 제목만 표시하고 본문이나 전체 도구 출력을 진행 로그에 복제하지 않습니다.
+
+일반 답변·근거 부족 안내·캐시 답변 모두 최대 24개 Unicode 코드 포인트의 NDJSON chunk로 전달합니다. 브라우저는 네트워크에서 합쳐진 chunk도 다시 나눠 약 40ms 간격으로 표시하며, 완료 상태는 화면의 대기 chunk가 소진된 뒤로 미룹니다. 중지·검색어 변경·검색 닫기는 전송과 화면 대기열을 함께 취소합니다. 새 단어만 블러/slide-up을 적용하고 모션 감소 설정에서는 일반 텍스트로 표시합니다.
+
+검증: `node --test tests/search.test.cjs tests/answer-rendering.test.cjs`, `npx tsc --noEmit`, `yarn build`. 테스트의 Notion/OpenAI/Redis 호출은 가짜 응답으로 격리되며 비용이 발생하지 않습니다.
+
+salt는 `openssl rand -hex 32`로 생성한 값을 `SEARCH_AGENT_IP_SALT`에 등록합니다. Vercel의 Production/Preview 중 사용할 환경에 필수 변수를 등록하고 새 배포를 생성해야 실행 중인 Function에 적용됩니다. Redis 없이 사용할 때는 Redis 변수 둘 다 생략합니다.
 
 ### Vercel
 

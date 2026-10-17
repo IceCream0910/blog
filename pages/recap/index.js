@@ -58,6 +58,7 @@ export async function getStaticProps() {
     const posts = data.results.map((page) => ({
       id: page.id,
       title: propertyText(page.properties?.["이름"]) || "월말결산",
+      subtitle: propertyText(namedProperty(page.properties, "subtitle")),
       date: page.properties?.["forest_날짜"]?.date?.start || page.created_time,
       properties: {
         music: parseObjects(namedProperty(page.properties, "music")),

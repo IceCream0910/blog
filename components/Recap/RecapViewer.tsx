@@ -4,7 +4,10 @@ import { AnimatePresence, LayoutGroup, motion, useMotionValue, useTransform, typ
 import { NotionRenderer } from "../../packages/notionx";
 import { Code, Collection, Equation, Modal } from "../../utils/notion-components";
 import { useDarkMode } from "../../hooks/useDarkMode";
-import { getGradientTextColor, getTextGradient } from "../../utils/text-gradient";
+import SkyGradient from "./SkyGradient";
+import RecapCover from "./RecapCover";
+import ImageStack from "./ImageStack";
+import { paginateRecapSection, type RecapBodyLayout } from "../../utils/recap-pagination";
 import { useRouter } from "next/router";
 
 type RecapItem = Record<string, string>;
@@ -24,6 +27,7 @@ type RecapPost = {
   id: string;
   title: string;
   date: string;
+  subtitle?: string;
   properties: Record<string, RecapItem[]>;
   sections?: RecapSection[];
   recordMap?: any;
@@ -31,7 +35,7 @@ type RecapPost = {
 };
 type PropertySlide = { type: "property"; key: string; title: string; items: RecapItem[] };
 type CoverSlide = { type: "cover"; title: string };
-type BodyLayout = "standard" | "scrap" | "hero" | "inline";
+type BodyLayout = RecapBodyLayout;
 type BodySlide = {
   type: "body";
   sectionId: string;
@@ -170,39 +174,10 @@ function getSlideDuration(slide: RecapSlide, post: RecapPost, soundEnabled: bool
       const block = getBlockValue(post.recordMap, blockId);
       return block?.type === "image" && getBlockStats(post.recordMap, blockId).characters === 0;
     });
-    if (isImageOnly) return Math.min(2000, 2000 + Math.max(0, stats.media - 1) * 450);
-    return Math.max(4800, Math.min(16000, 4200 + stats.characters * 28 + stats.media * 2200));
+    if (isImageOnly) return Math.max(4800, stats.media * 3600);
+    return Math.max(stats.media * 3600, 4800, Math.min(16000, 4200 + stats.characters * 28 + stats.media * 2200));
   }
   return 5000;
-}
-
-function CoverContent({ post }: { post: RecapPost }) {
-  const month = new Date(post.date).toLocaleDateString("ko-KR", { year: "numeric", month: "long" });
-  const copyVariants = {
-    hidden: { opacity: 0, y: 18, filter: "blur(5px)" },
-    visible: { opacity: 1, y: 0, filter: "blur(0px)" },
-  };
-  return (
-    <motion.div
-      className="recap-cover"
-      initial="hidden"
-      animate="visible"
-      variants={{ visible: { transition: { delayChildren: 0, staggerChildren: 0.44 } } }}
-    >
-      <motion.span className="recap-cover-eyebrow" variants={copyVariants} transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}>
-        MONTHLY RECAP
-      </motion.span>
-      <motion.h1 variants={copyVariants} transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}>
-        {post.title}
-      </motion.h1>
-      <motion.p variants={copyVariants} transition={{ duration: 0.68, ease: [0.22, 1, 0.36, 1] }}>
-        {month}의 일들과 생각을 모아봤어요.
-      </motion.p>
-      <motion.small className="recap-cover-ai-notice" variants={copyVariants} transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}>
-        모든 본문의 음성은 AI로 생성되었습니다.
-      </motion.small>
-    </motion.div>
-  );
 }
 
 function PropertyItemMotion({
@@ -459,12 +434,12 @@ function NarratedText({ narration, sourceText, state, narrationTime }: { narrati
   );
 }
 
-function BodyContent({ slide, post, darkMode, direction, narrationEnabled, narratingBlockId, pastNarrationBlockIds, narrationTime }: { slide: BodySlide; post: RecapPost; darkMode: boolean; direction: number; narrationEnabled: boolean; narratingBlockId?: string; pastNarrationBlockIds: string[]; narrationTime: MotionValue<number> }) {
+function BodyContent({ slide, post, darkMode, direction, playing, narrationEnabled, narratingBlockId, pastNarrationBlockIds, narrationTime }: { slide: BodySlide; post: RecapPost; darkMode: boolean; direction: number; playing: boolean; narrationEnabled: boolean; narratingBlockId?: string; pastNarrationBlockIds: string[]; narrationTime: MotionValue<number> }) {
   const contentRef = useRef<HTMLDivElement | null>(null);
   const visualIds = slide.blockIds.filter((id) => VISUAL_BLOCK_TYPES.has(getBlockValue(post.recordMap, id)?.type));
   const textIds = slide.blockIds.filter((id) => !visualIds.includes(id));
   const mixed = visualIds.length > 0 && textIds.length > 0;
-  const grouped = mixed && (slide.layout === "scrap" || slide.layout === "inline");
+  const grouped = mixed;
 
   useEffect(() => {
     const active = contentRef.current?.querySelector<HTMLElement>(".is-narrating");
@@ -512,6 +487,18 @@ function BodyContent({ slide, post, darkMode, direction, narrationEnabled, narra
     )
   };
 
+  const renderMedia = (ids: string[]) => {
+    const groups: string[][] = [];
+    for (const id of ids) {
+      const previous = groups.at(-1);
+      if (getBlockValue(post.recordMap, id)?.type === "image" && previous?.every((other) => getBlockValue(post.recordMap, other)?.type === "image") && slide.blockIds.indexOf(id) === slide.blockIds.indexOf(previous.at(-1)!) + 1) previous.push(id);
+      else groups.push([id]);
+    }
+    return groups.map((group) => group.length > 1
+      ? <ImageStack key={group.join("-")} ids={group} playing={playing} renderImage={renderBlock} />
+      : renderBlock(group[0]));
+  };
+
   return (
     <div
       className={`recap-body-slide recap-layout-${slide.layout} ${mixed ? "has-mixed-media" : ""}`}
@@ -521,9 +508,9 @@ function BodyContent({ slide, post, darkMode, direction, narrationEnabled, narra
         {grouped ? (
           <>
             <div className="recap-copy-pane">{textIds.map(renderBlock)}</div>
-            <div className="recap-media-pane">{visualIds.map(renderBlock)}</div>
+            <div className="recap-media-pane">{renderMedia(visualIds)}</div>
           </>
-        ) : slide.blockIds.map(renderBlock)}
+        ) : visualIds.length ? renderMedia(slide.blockIds) : slide.blockIds.map(renderBlock)}
       </div>
     </div>
   );
@@ -543,6 +530,8 @@ function PickerOverlay({
   position,
   surfaceLayoutId,
   selectedTextLayoutId,
+  closing = false,
+  onClosed,
   onSelect,
   onClose,
 }: {
@@ -552,6 +541,8 @@ function PickerOverlay({
   position: "top" | "bottom";
   surfaceLayoutId: string;
   selectedTextLayoutId: string;
+  closing?: boolean;
+  onClosed?: () => void;
   onSelect: (target: number) => void;
   onClose: () => void;
 }) {
@@ -562,12 +553,12 @@ function PickerOverlay({
   }, [activeIndex]);
 
   return (
-    <div className={`recap-picker recap-picker-${position}`} role="dialog" aria-modal="true" aria-label={title}>
-      <motion.button type="button" className="recap-picker-backdrop" aria-label="선택 목록 닫기" onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
+    <motion.div className={`recap-picker recap-picker-${position}`} role="dialog" aria-modal="true" aria-label={title} initial={{ opacity: 1 }} animate={{ opacity: closing ? 0 : 1 }} exit={{ opacity: 0 }} transition={{ duration: .3 }} onAnimationComplete={() => { if (closing) onClosed?.(); }}>
+      <motion.button type="button" className="recap-picker-backdrop" aria-label="선택 목록 닫기" onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .3 }} />
       <motion.div
         layoutId={surfaceLayoutId}
         className="recap-picker-panel"
-        transition={{ layout: { type: "spring", stiffness: 360, damping: 34 }, opacity: { duration: 0.18 } }}
+        transition={{ layout: position === "bottom" ? { duration: .28, ease: [.22, 1, .36, 1] } : { type: "spring", stiffness: 360, damping: 34 }, opacity: { duration: 0.18 } }}
       >
         <div className="recap-picker-heading"><span>{title}</span><button type="button" onClick={onClose} aria-label="닫기"><IonIcon name="close-outline" /></button></div>
         <div className="recap-picker-list">
@@ -584,7 +575,7 @@ function PickerOverlay({
             >
               <span>
                 {item.target === activeIndex
-                  ? <motion.strong layoutId={selectedTextLayoutId} transition={{ layout: { type: "spring", stiffness: 420, damping: 36 } }}>{item.label}</motion.strong>
+                  ? <motion.strong layoutId={selectedTextLayoutId} transition={{ layout: position === "bottom" ? { duration: .28, ease: [.22, 1, .36, 1] } : { type: "spring", stiffness: 420, damping: 36 } }}>{item.label}</motion.strong>
                   : <strong>{item.label}</strong>}
                 {item.detail && <small>{item.detail}</small>}
               </span>
@@ -593,7 +584,7 @@ function PickerOverlay({
           ))}
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -705,13 +696,16 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     const index = posts.findIndex((post) => post.id.replace(/-/g, "") === (router.query.document as string).replace(/-/g, ""));
     if (index >= 0) { setPostIndex(index); setSlideIndex(0); }
   }, [router.isReady, router.query.document, posts]);
-  const [bodySlides, setBodySlides] = useState<BodySlide[]>([]);
-  const [bodySlidesReady, setBodySlidesReady] = useState(false);
+  const [bodyPlan, setBodyPlan] = useState<{ postId: string; slides: BodySlide[] } | null>(null);
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const [recapData, setRecapData] = useState<Record<string, { sections: RecapSection[]; recordMap: any; narration?: NarrationManifest }>>({});
   const [loadError, setLoadError] = useState(false);
   const [direction, setDirection] = useState(1);
   const [sectionPickerOpen, setSectionPickerOpen] = useState(false);
   const [postPickerOpen, setPostPickerOpen] = useState(false);
+  const [postPickerClosing, setPostPickerClosing] = useState(false);
+  const pendingPostIndex = useRef<number | null>(null);
+  const [postPickerSelection, setPostPickerSelection] = useState<number | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [autoplay, setAutoplay] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -738,21 +732,21 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
   const loadedPost = sourcePost ? recapData[sourcePost.id] : undefined;
   const post = sourcePost ? { ...sourcePost, ...loadedPost } : undefined;
 
+  const bodySlides = bodyPlan && bodyPlan.postId === post?.id ? bodyPlan.slides : [];
+  const bodySlidesReady = Boolean(bodyPlan && bodyPlan.postId === post?.id);
+  const deckReady = Boolean(loadedPost && (!post?.sections?.length || bodySlidesReady));
+  const activeAnchor = useRef<{ postId?: string; blockId?: string; index: number }>({ index: 0 });
+
   const propertySlides = useMemo(() => post ? createPropertySlides(post) : [], [post?.id, post?.properties]);
   const musicIds = useMemo(() => Array.from(new Set((post?.properties.music || [])
     .map((item) => item.id?.trim())
     .filter((id): id is string => Boolean(id)))), [post?.id, post?.properties.music]);
   const slides: RecapSlide[] = useMemo(() => {
-    const bodyPending = !loadError && (!loadedPost || Boolean(post?.sections?.length && !bodySlidesReady));
-    const all: RecapSlide[] = post ? [
-      { type: "cover", title: "월말결산 표지" },
-      ...propertySlides,
-      ...bodySlides,
-      ...(bodyPending ? [{ type: "empty", title: "본문을 준비하고 있어요." } as EmptySlide] : loadError ? [{ type: "empty", title: "본문을 불러오지 못했어요. 다른 월을 선택하거나 새로고침해 주세요." } as EmptySlide] : []),
-    ] : [];
-    return all.length ? all : [{ type: "empty", title: loadError ? "본문을 불러오지 못했어요." : "결산을 불러오는 중이에요." }];
-  }, [post?.id, post?.recordMap, post?.sections, propertySlides, bodySlides, bodySlidesReady, loadedPost, loadError]);
+    if (!post) return [{ type: "empty", title: "표시할 월말결산이 없습니다." }];
+    return [{ type: "cover", title: "월말결산 표지" }, ...(deckReady ? [...propertySlides, ...bodySlides] : [])];
+  }, [post?.id, deckReady, propertySlides, bodyPlan]);
   const activeSlide = slides[Math.min(slideIndex, slides.length - 1)];
+  activeAnchor.current = { postId: post?.id, blockId: activeSlide?.type === "body" ? activeSlide.blockIds[0] : undefined, index: slideIndex };
   useEffect(() => {
     if (!musicIds.length) return;
     const controller = new AbortController();
@@ -777,12 +771,8 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     ? narrationQueue.slice(0, narrationQueueIndex).map((item) => item.blockId)
     : [], [soundEnabled, narrationQueue, narrationQueueIndex]);
   const isCover = activeSlide.type === "cover";
-  const isFullyLoaded = useMemo(() => {
-    return (Boolean(loadedPost) && (!post?.sections?.length || bodySlidesReady)) || loadError;
-  }, [loadedPost, post?.sections?.length, bodySlidesReady, loadError]);
+  const isFullyLoaded = deckReady;
   const introUrl = useMemo(() => recapIntroUrl(post?.id), [post?.id]);
-  const coverGradient = useMemo(() => getTextGradient(post?.title || "recap"), [post?.title]);
-  const coverTextColor = useMemo(() => getGradientTextColor(coverGradient), [coverGradient]);
   const activePropertyKey = activeSlide.type === "property" ? activeSlide.key : undefined;
   const activeMusicItem = activeSlide.type === "property" && activeSlide.key === "music"
     ? enrichMusicItem(activeSlide.items[propertyItemIndex] || {}, musicById)
@@ -790,7 +780,7 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
   const musicSlideIndex = slides.findIndex((slide) => slide.type === "property" && slide.key === "music");
   const firstBodyIndex = slides.findIndex((slide) => slide.type === "body");
   const musicTailActive = activeSlide.type === "body" && firstBodyIndex >= 0 && slideIndex >= firstBodyIndex;
-  const playbackEnabled = autoplay && documentVisible && !sectionPickerOpen && !postPickerOpen && !helpOpen;
+  const playbackEnabled = autoplay && documentVisible && !sectionPickerOpen && !postPickerOpen && !postPickerClosing && !helpOpen;
   const continuingMusicItem = musicSlideIndex >= 0 && slideIndex > musicSlideIndex && (activeSlide.type === "property" || (activeSlide.type === "empty" && !loadError) || musicTailActive)
     ? enrichMusicItem((slides[musicSlideIndex] as PropertySlide).items.at(-1) || {}, musicById)
     : undefined;
@@ -920,101 +910,35 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     target: index,
   })), [posts]);
 
-  const classifyLayout = useCallback((elements: HTMLElement[], blockIds: string[]): BodyLayout => {
-    const visualIds = blockIds.filter((id) => VISUAL_BLOCK_TYPES.has(getBlockValue(post?.recordMap, id)?.type));
-    if (!visualIds.length) return "standard";
-    const hasText = visualIds.length < blockIds.length;
-    if (!hasText) return "inline";
-    const images = elements.flatMap((element) => Array.from(element.querySelectorAll<HTMLImageElement>("img")));
-    const image = images[0];
-    const ratio = image?.naturalWidth && image.naturalHeight ? image.naturalWidth / image.naturalHeight : 1;
-    if (visualIds.length === 1 && images.length === 1) return ratio >= 1.6 ? "hero" : "scrap";
-    return "inline";
-  }, [post?.recordMap]);
-
   const paginateMeasuredBlocks = useCallback(() => {
     if (!post?.sections || !post.recordMap) return;
     const slideElement = document.querySelector<HTMLElement>("[data-recap-body-viewport]");
     if (!slideElement) return;
     const style = getComputedStyle(slideElement);
-    const available = Math.max(120, slideElement.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom));
-    const pageBudget = available - 24;
-    const gap = Math.min(24, Math.max(14, window.innerHeight * 0.02));
-    const sideBySide = window.innerWidth >= 900;
-    const nextSlides: BodySlide[] = [];
-
-    post.sections.forEach((section) => {
-      const sectionElement = document.querySelector(`[data-recap-section="${section.id}"]`);
-      const elementsById = new Map(Array.from(sectionElement?.querySelectorAll<HTMLElement>("[data-recap-block]") || [])
-        .map((element) => [element.dataset.recapBlock!, element]));
-      const isVisual = (id: string) => VISUAL_BLOCK_TYPES.has(getBlockValue(post.recordMap, id)?.type);
-      const height = (id: string) => {
-        const element = elementsById.get(id);
-        if (isVisual(id)) return Math.min(pageBudget * 0.48, Math.max(96, element?.getBoundingClientRect().height || 180));
-        // Measure both narrated and original copy at the actual column width.
+    const budget = Math.max(120, slideElement.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom) - 24);
+    const nextSlides = post.sections.flatMap((section) => {
+      const sectionElement = Array.from(document.querySelectorAll<HTMLElement>("[data-recap-section]")).find((node) => node.dataset.recapSection === section.id);
+      const elements = new Map(Array.from(sectionElement?.querySelectorAll<HTMLElement>("[data-recap-block]") || []).map((node) => [node.dataset.recapBlock!, node]));
+      const blocks = section.blockIds.map((id) => {
+        const block = getBlockValue(post.recordMap, id);
+        const element = elements.get(id);
+        const image = element?.querySelector<HTMLImageElement>("img");
         const variants = Array.from(element?.querySelectorAll<HTMLElement>("[data-recap-copy-measure]") || []);
-        return Math.max(32, ...variants.map((node) => node.getBoundingClientRect().height), element?.getBoundingClientRect().height || 0);
-      };
-      const layoutFor = (ids: string[]) => classifyLayout(ids.map((id) => elementsById.get(id)).filter(Boolean), ids);
-      const stackHeight = (ids: string[]) => ids.reduce((total, id) => total + height(id), 0) + Math.max(0, ids.length - 1) * gap;
-      const requiredHeight = (ids: string[]) => {
-        const visual = ids.filter(isVisual);
-        const text = ids.filter((id) => !isVisual(id));
-        const layout = layoutFor(ids);
-        return sideBySide && visual.length && text.length && layout !== "hero"
-          ? Math.max(stackHeight(text), stackHeight(visual))
-          : stackHeight(ids);
-      };
-      const textBudget = (ids: string[]) => {
-        const mixed = ids.some(isVisual);
-        const sample = elementsById.get(ids.find((id) => !isVisual(id)) || "")?.querySelector<HTMLElement>(".notion-text, .recap-narrated-text");
-        const lineHeight = sample ? parseFloat(getComputedStyle(sample).lineHeight) || 28 : 28;
-        // Aim for roughly 8 lines beside a photo and 10 lines on copy-only pages.
-        return Math.max(96, Math.min(pageBudget * (mixed ? 0.52 : 0.66), lineHeight * (mixed ? 8 : 10)));
-      };
-      const fits = (ids: string[]) => {
-        const text = ids.filter((id) => !isVisual(id));
-        return requiredHeight(ids) <= pageBudget * 0.9
-          && stackHeight(text) <= textBudget(ids)
-          && text.length <= (ids.some(isVisual) ? 2 : 3);
-      };
-      const pages: string[][] = [];
-      let current: string[] = [];
-      for (const id of section.blockIds) {
-        // On stacked pages a photo closes the preceding passage. Do not pair it
-        // with the next topic just because that paragraph happens to fit.
-        if (!sideBySide && current.length && isVisual(current.at(-1)!) && !isVisual(id)) {
-          pages.push(current);
-          current = [];
-        }
-        if (current.length && !fits([...current, id])) {
-          const previous = current.at(-1)!;
-          const carryCopy = isVisual(id) && !isVisual(previous) && fits([previous, id]);
-          if (carryCopy) current.pop();
-          if (current.length) pages.push(current);
-          current = carryCopy ? [previous] : [];
-        }
-        current.push(id);
-      }
-      if (current.length) pages.push(current);
-      if (!pages.length) pages.push([]);
-      pages.forEach((ids, index) => {
-        const visual = ids.filter(isVisual);
-        const text = ids.filter((id) => !isVisual(id));
-        const layout = layoutFor(ids);
-        const columns = sideBySide && visual.length && text.length && layout !== "hero";
-        const visualBudget = columns || !text.length ? pageBudget : pageBudget - stackHeight(text) - gap;
-        const visualMaxHeight = visual.length
-          ? Math.max(72, Math.min(pageBudget * (text.length ? 0.48 : 0.85), (visualBudget - Math.max(0, visual.length - 1) * gap) / visual.length))
-          : pageBudget;
-        nextSlides.push({ type: "body", sectionId: section.id, title: section.title, blockIds: ids,
-          continuation: index > 0, layout, visualMaxHeight, textMaxHeight: textBudget(ids) });
+        const measured = Math.max(32, element?.getBoundingClientRect().height || 0, ...variants.map((node) => node.getBoundingClientRect().height));
+        return { id, type: block?.type || "text", characters: getBlockStats(post.recordMap, id).characters,
+          height: VISUAL_BLOCK_TYPES.has(block?.type) ? Math.min(budget * .48, Math.max(96, measured)) : measured,
+          imageRatio: image?.naturalHeight ? image.naturalWidth / image.naturalHeight : 1 };
       });
+      return paginateRecapSection(blocks, { budget, gap: Math.min(24, Math.max(14, window.innerHeight * .02)), sideBySide: window.innerWidth >= 900, lineHeight: 28 })
+        .map((page, index): BodySlide => ({ ...page, type: "body", sectionId: section.id, title: section.title, continuation: index > 0 }));
     });
-    const signature = (value: BodySlide[]) => value.map((item) => `${item.sectionId}:${item.blockIds.join(",")}:${item.layout}:${Math.round(item.visualMaxHeight)}:${Math.round(item.textMaxHeight)}`).join("|");
-    setBodySlides((current) => signature(current) === signature(nextSlides) ? current : nextSlides);
-    setBodySlidesReady(true);
-  }, [classifyLayout, post?.id, post?.recordMap, post?.sections]);
+    const anchor = activeAnchor.current;
+    if (anchor.postId === post.id && anchor.blockId) {
+      const index = nextSlides.findIndex((slide) => slide.blockIds.includes(anchor.blockId!));
+      if (index >= 0) setSlideIndex(1 + propertySlides.length + index);
+    }
+    setBodyPlan({ postId: post.id, slides: nextSlides });
+  }, [post?.id, post?.recordMap, post?.sections, propertySlides]);
 
   useEffect(() => {
     if (!sourcePost || recapData[sourcePost.id]) return;
@@ -1026,16 +950,15 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
         if (!response.ok) throw new Error("Failed to load recap");
         return response.json();
       })
-      .then((data) => { if (!controller.signal.aborted) setRecapData((current) => ({ ...current, [sourcePost.id]: data })); })
+      .then((data) => { if (!Array.isArray(data?.sections) || !data?.recordMap) throw new Error("Invalid recap response"); window.clearTimeout(timeout); if (!controller.signal.aborted) setRecapData((current) => ({ ...current, [sourcePost.id]: data })); })
       .catch((error) => { if (!controller.signal.aborted && error.name !== "AbortError") setLoadError(true); });
     return () => { window.clearTimeout(timeout); controller.abort(); };
-  }, [sourcePost?.id, !!(sourcePost && recapData[sourcePost.id])]);
+  }, [sourcePost?.id, !!(sourcePost && recapData[sourcePost.id]), retryAttempt]);
 
   useEffect(() => {
     setLoadError(false);
     setSlideIndex(0);
-    setBodySlides([]);
-    setBodySlidesReady(false);
+
     setSectionPickerOpen(false);
     progressRef.current = 0;
     progressMotion.set(0);
@@ -1047,6 +970,7 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     if (!measureRoot) return;
     let frame = 0;
     let cancelled = false;
+    let committed = false;
     const run = () => {
       if (cancelled) return;
       cancelAnimationFrame(frame);
@@ -1083,21 +1007,23 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
         });
       });
     };
-    const fallback = window.setTimeout(run, 4000);
-    window.addEventListener("resize", run);
+    const commit = () => { if (!committed) { committed = true; run(); } };
+    const fallback = window.setTimeout(commit, 4000);
+    const resized = () => { syncMeasureWidth(); if (committed) run(); };
+    window.addEventListener("resize", resized);
     Promise.all([
       Promise.all(images.map(imageReady)),
       document.fonts?.ready || Promise.resolve(),
     ]).then(() => {
       window.clearTimeout(fallback);
-      run();
+      commit();
     });
     return () => {
       cancelled = true;
       window.clearTimeout(fallback);
       imageCleanups.forEach((cleanup) => cleanup());
       cancelAnimationFrame(frame);
-      window.removeEventListener("resize", run);
+      window.removeEventListener("resize", resized);
     };
   }, [paginateMeasuredBlocks, post?.recordMap]);
 
@@ -1108,12 +1034,36 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     setPostPickerOpen(false);
   }, [postIndex]);
 
+  const closePostPicker = useCallback(() => {
+    if (!postPickerOpen) return;
+    setPostPickerClosing(true);
+    setPostPickerOpen(false);
+  }, [postPickerOpen]);
+  const choosePost = useCallback((index: number) => {
+    if (pendingPostIndex.current !== null) return;
+    pendingPostIndex.current = index;
+    setPostPickerSelection(index);
+  }, []);
+  useEffect(() => {
+    if (postPickerSelection === null || !postPickerOpen) return;
+    const frame = requestAnimationFrame(closePostPicker);
+    return () => cancelAnimationFrame(frame);
+  }, [postPickerSelection, postPickerOpen, closePostPicker]);
+  const finishPostPickerExit = useCallback(() => {
+    const index = pendingPostIndex.current;
+    pendingPostIndex.current = null;
+    if (index !== null) selectPost(index);
+    setPostPickerClosing(false);
+    setPostPickerSelection(null);
+  }, [selectPost]);
+
   const changePost = useCallback((delta: number) => {
     const next = Math.max(0, Math.min(posts.length - 1, postIndex + delta));
     if (next !== postIndex) selectPost(next);
   }, [postIndex, posts.length, selectPost]);
 
   const changeSlide = useCallback((delta: number) => {
+    if (delta > 0 && !deckReady) return;
     const next = slideIndex + delta;
     progressRef.current = 0;
     progressMotion.set(0);
@@ -1121,7 +1071,7 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     if (next >= slides.length) return changePost(1);
     setDirection(delta);
     setSlideIndex(next);
-  }, [changePost, slideIndex, slides.length]);
+  }, [changePost, slideIndex, slides.length, deckReady]);
 
   const narrationNavigationActive = soundEnabled && activeSlide.type === "body" && narrationQueue.length > 0;
   const openHelp = useCallback(() => {
@@ -1150,7 +1100,7 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
   const previousNavigatesSentence = narrationNavigationActive && narrationQueueIndex > 0;
   const nextNavigatesSentence = narrationNavigationActive && narrationQueueIndex < narrationQueue.length - 1;
   const previousNavigationDisabled = !previousNavigatesSentence && slideIndex === 0 && postIndex === 0;
-  const nextNavigationDisabled = !nextNavigatesSentence && slideIndex === slides.length - 1 && postIndex === posts.length - 1;
+  const nextNavigationDisabled = !deckReady || !nextNavigatesSentence && slideIndex === slides.length - 1 && postIndex === posts.length - 1;
 
   const selectSection = useCallback((target: number) => {
     if (!Number.isInteger(target) || target < 0 || target >= slides.length || !slides[target]) return;
@@ -1253,7 +1203,7 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
   }, []);
 
   useEffect(() => {
-    if (!autoplay || !documentVisible || sectionPickerOpen || postPickerOpen || helpOpen || !post || activeSlide.type === "empty") return;
+    if (!deckReady || slides.length < 2 || !autoplay || !documentVisible || sectionPickerOpen || postPickerOpen || postPickerClosing || helpOpen || !post || activeSlide.type === "empty") return;
     if (soundEnabled && activeSlide.type === "body" && narrationQueue.length) return;
     const duration = getSlideDuration(activeSlide, post, soundEnabled);
     const startedAt = performance.now() - progressRef.current * duration;
@@ -1283,23 +1233,24 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [activeSlide, autoplay, changeSlide, documentVisible, helpOpen, isFullyLoaded, narrationQueue.length, slides.length, slideIndex, post?.id, post?.recordMap, postPickerOpen, sectionPickerOpen, soundEnabled, timerEpoch]);
+  }, [activeSlide, autoplay, changeSlide, documentVisible, helpOpen, isFullyLoaded, narrationQueue.length, slides.length, slideIndex, post?.id, post?.recordMap, postPickerOpen, postPickerClosing, sectionPickerOpen, soundEnabled, timerEpoch]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { setSectionPickerOpen(false); setPostPickerOpen(false); closeHelp(); }
+      if (event.key === "Escape") { setSectionPickerOpen(false); closePostPicker(); closeHelp(); }
       if (event.key === "ArrowLeft") navigateFromToolbar(-1);
       if (event.key === "ArrowRight") navigateFromToolbar(1);
       if (event.key === " ") { event.preventDefault(); setAutoplay((current) => !current); }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [closeHelp, navigateFromToolbar]);
+  }, [closeHelp, closePostPicker, navigateFromToolbar]);
 
   if (!post) return <main className="recap-empty"><h1>표시할 월말결산이 없습니다.</h1><p>일지 카테고리의 게시물을 추가해 주세요.</p></main>;
 
   const onPointerUp = (event: React.PointerEvent<HTMLElement>) => {
     if (!pointerStart.current) return;
+    if ((event.target as HTMLElement).closest(".recap-picker, .recap-help-overlay")) { pointerStart.current = null; return; }
     const dx = event.clientX - pointerStart.current.x;
     const dy = event.clientY - pointerStart.current.y;
     pointerStart.current = null;
@@ -1317,12 +1268,7 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
   return (
     <LayoutGroup id="recap-picker-morphs">
       <main
-        className={`recap-shell ${isCover || activePropertyKey ? "has-recap-scene" : ""} ${isCover ? "has-cover-scene" : ""} ${soundEnabled ? "has-narration" : ""} ${activePropertyKey ? `has-property-scene recap-scene-${activePropertyKey} recap-scene-count-${activePropertyCount}` : ""}`}
-        style={isCover ? {
-          "--recap-cover-from": coverGradient.from,
-          "--recap-cover-to": coverGradient.to,
-          "--recap-cover-foreground": coverTextColor,
-        } as React.CSSProperties : undefined}
+        className={`recap-shell ${isCover || activePropertyKey || activeSlide.type === "body" && activeSlide.layout === "immersive" ? "has-recap-scene" : ""} ${isCover ? "has-cover-scene" : ""} ${activeSlide.type === "body" && activeSlide.layout === "immersive" ? "has-immersive-scene" : ""} ${soundEnabled ? "has-narration" : ""} ${activePropertyKey ? `has-property-scene recap-scene-${activePropertyKey} recap-scene-count-${activePropertyCount}` : ""}`}
         onPointerDown={(event) => { pointerStart.current = { x: event.clientX, y: event.clientY }; }}
         onPointerUp={onPointerUp}
         onPointerCancel={() => { pointerStart.current = null; }}
@@ -1337,7 +1283,7 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
               exit={{ opacity: 0, scale: 1.025 }}
               transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
               aria-hidden="true"
-            ><span /><i /></motion.div>
+            ><SkyGradient seed={post.id} paused={!playbackEnabled} /></motion.div>
           )}
           {activePropertyKey && (
             <motion.div
@@ -1367,11 +1313,11 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
             <motion.div
               layout
               className="recap-progress"
-              aria-label={`${isCover ? 1 : slideIndex + 1} / ${isCover ? 1 : slides.length} 페이지`}
+              aria-label={deckReady ? `${slideIndex + 1} / ${slides.length} 페이지` : "전체 페이지 준비 중"}
             >
               <AnimatePresence initial={false}>
-                {(isCover ? slides.slice(0, 1) : slides).map((slide, index) => {
-                  const realIndex = isCover ? 0 : index;
+                {slides.map((slide, index) => {
+                  const realIndex = index;
                   const key = slide.type === "cover"
                     ? `cover-${post.id}`
                     : slide.type === "body"
@@ -1419,17 +1365,17 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
                 )}
               </div>
               <span className="recap-count">
-                {!isCover && `${slideIndex + 1} / ${slides.length}`}
+                {deckReady ? `${slideIndex + 1} / ${slides.length}` : "준비 중"}
                 {!helpOpen && <motion.button layoutId="recap-help-surface" type="button" className="recap-toolbar-help" aria-label="월말결산 탐색 도움말" onClick={openHelp} initial={false} animate={{ borderRadius: 999 }} whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.92 }}><IonIcon name="help-circle-outline" style={{ position: 'relative', top: '1px' }} /></motion.button>}
               </span>
             </div>
           </div>
 
           <AnimatePresence mode="wait" custom={direction}>
-            <motion.article key={`${post.id}-${slideIndex}-${activeSlide.type}`} className="recap-slide" custom={direction} initial={{ opacity: 0, x: direction > 0 ? 28 : -28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: direction > 0 ? -28 : 28 }} transition={{ duration: 0.22, ease: "easeOut" }}>
-              {activeSlide.type === "cover" && <CoverContent post={post} />}
+            <motion.article key={`${post.id}-${slideIndex}-${activeSlide.type}`} className="recap-slide" custom={direction} initial={isCover ? false : { opacity: 0, x: direction > 0 ? 28 : -28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: direction > 0 ? -28 : 28 }} transition={{ duration: 0.22, ease: "easeOut" }}>
+              {activeSlide.type === "cover" && <RecapCover post={post} empty={deckReady && slides.length === 1} ready={deckReady} failed={loadError} onStart={() => changeSlide(1)} onRetry={() => setRetryAttempt((value) => value + 1)} />}
               {activeSlide.type === "property" && <PropertyContent slide={activeSlide} activeMusicIndex={propertyItemIndex} musicById={musicById} onToggleAutoplay={() => setAutoplay((current) => !current)} />}
-              {activeSlide.type === "body" && <BodyContent slide={activeSlide} post={post} darkMode={darkMode} direction={direction} narrationEnabled={soundEnabled} narratingBlockId={soundEnabled ? activeNarration?.blockId : undefined} pastNarrationBlockIds={pastNarrationBlockIds} narrationTime={narrationTime} />}
+              {activeSlide.type === "body" && <BodyContent playing={playbackEnabled} slide={activeSlide} post={post} darkMode={darkMode} direction={direction} narrationEnabled={soundEnabled} narratingBlockId={soundEnabled ? activeNarration?.blockId : undefined} pastNarrationBlockIds={pastNarrationBlockIds} narrationTime={narrationTime} />}
               {activeSlide.type === "empty" && <div className="recap-empty-slide" role="status" aria-live="polite"><IonIcon name="moon-outline" /><h1>{activeSlide.title}</h1></div>}
             </motion.article>
           </AnimatePresence>
@@ -1452,25 +1398,25 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
                   >
                     {measureNarration && (
                       <div data-recap-copy-measure>
-                      <NarratedText
-                        narration={blockNarration}
-                        sourceText={getBlockPlainText(post.recordMap, blockId) || blockNarration.text}
-                        state="upcoming"
-                        narrationTime={narrationTime}
-                      />
+                        <NarratedText
+                          narration={blockNarration}
+                          sourceText={getBlockPlainText(post.recordMap, blockId) || blockNarration.text}
+                          state="upcoming"
+                          narrationTime={narrationTime}
+                        />
                       </div>
                     )}
                     {post.recordMap && (
                       <div data-recap-copy-measure>
-                      <NotionRenderer
-                        recordMap={post.recordMap}
-                        blockId={blockId}
-                        components={rendererComponents}
-                        fullPage={false}
-                        darkMode={darkMode}
-                        showTableOfContents={false}
-                        isImageZoomable={false}
-                      />
+                        <NotionRenderer
+                          recordMap={post.recordMap}
+                          blockId={blockId}
+                          components={rendererComponents}
+                          fullPage={false}
+                          darkMode={darkMode}
+                          showTableOfContents={false}
+                          isImageZoomable={false}
+                        />
                       </div>
                     )}
                   </div>
@@ -1490,8 +1436,8 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
               onClick={() => setSoundEnabled((current) => !current)}
             ><IonIcon name={soundEnabled ? "volume-high-outline" : "volume-mute-outline"} /></button>
             {!postPickerOpen ? (
-              <motion.div layoutId="recap-post-picker-surface" className="recap-post-bubble">
-                <button type="button" className="recap-post-selector" onClick={() => setPostPickerOpen(true)}><motion.span layoutId="recap-post-picker-text">{post.title}</motion.span><IonIcon name="chevron-up-outline" /></button>
+              <motion.div layoutId="recap-post-picker-surface" className="recap-post-bubble" transition={{ layout: { duration: .28, ease: [.22, 1, .36, 1] } }}>
+                <button type="button" className="recap-post-selector" disabled={postPickerClosing} onClick={() => setPostPickerOpen(true)}><motion.span layoutId="recap-post-picker-text" transition={{ layout: { duration: .28, ease: [.22, 1, .36, 1] } }}>{posts[postPickerSelection ?? postIndex]?.title}</motion.span><IonIcon name="chevron-up-outline" /></button>
               </motion.div>
             ) : <div className="recap-post-bubble-placeholder" />}
           </div>
@@ -1503,10 +1449,10 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
           </div>
         </nav>
 
+        {(postPickerOpen || postPickerClosing) && <PickerOverlay key="post-picker" closing={postPickerClosing} onClosed={finishPostPickerExit} title="월말결산 선택" items={postItems} activeIndex={postPickerSelection ?? postIndex} position="bottom" surfaceLayoutId="recap-post-picker-surface" selectedTextLayoutId="recap-post-picker-text" onClose={closePostPicker} onSelect={choosePost} />}
         <AnimatePresence>
-          {sectionPickerOpen && <PickerOverlay title="섹션 선택" items={sectionItems} activeIndex={activeSectionIndex} position="top" surfaceLayoutId="recap-section-picker-surface" selectedTextLayoutId="recap-section-picker-text" onClose={() => setSectionPickerOpen(false)} onSelect={selectSection} />}
-          {postPickerOpen && <PickerOverlay title="월말결산 선택" items={postItems} activeIndex={postIndex} position="bottom" surfaceLayoutId="recap-post-picker-surface" selectedTextLayoutId="recap-post-picker-text" onClose={() => setPostPickerOpen(false)} onSelect={selectPost} />}
-          {helpOpen && <RecapHelpOverlay onClose={closeHelp} />}
+          {sectionPickerOpen && <PickerOverlay key="section-picker" title="섹션 선택" items={sectionItems} activeIndex={activeSectionIndex} position="top" surfaceLayoutId="recap-section-picker-surface" selectedTextLayoutId="recap-section-picker-text" onClose={() => setSectionPickerOpen(false)} onSelect={selectSection} />}
+          {helpOpen && <RecapHelpOverlay key="help" onClose={closeHelp} />}
         </AnimatePresence>
       </main>
       <div className="recap-shell recap-sizing-shell" aria-hidden="true">

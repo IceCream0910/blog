@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "framer-motion";
+import { AnswerMarkdown } from "./Search/AnswerMarkdown";
+import { AnswerStreamQueue, type AgentProgress } from "../utils/search/answer-stream";
 import { useSearchResults } from "../hooks/useSearchResults";
 import { SEARCH_SCOPES, scopeLabels, type SearchOptions, type SearchResult, type SearchScope } from "../utils/search/types";
 
@@ -38,7 +40,11 @@ export function Search({ onClose, initialOptions = {} }: { onClose: () => void; 
   const reducedMotion = useReducedMotion();
   const isPresent = useIsPresent();
   const [selected, setSelected] = useState(0);
+  const [answerMode, setAnswerMode] = useState(false);
+  const [agentStopped, setAgentStopped] = useState(false);
   const [answer, setAnswer] = useState("");
+  const [progress, setProgress] = useState<AgentProgress[]>([]);
+  const [progressOpen, setProgressOpen] = useState(true);
   const [sources, setSources] = useState<SearchResult[]>([]);
   const [agentLoading, setAgentLoading] = useState(false);
   const [agentError, setAgentError] = useState("");
@@ -57,6 +63,7 @@ export function Search({ onClose, initialOptions = {} }: { onClose: () => void; 
 
   useEffect(() => {
     agentRef.current?.abort();
+    setAnswerMode(false); setAgentStopped(false); setProgress([]); setProgressOpen(true);
     setAnswer(""); setSources([]); setAgentError(""); setAgentLoading(false);
     setSelected(0);
   }, [query, scope, folder]);
@@ -66,15 +73,19 @@ export function Search({ onClose, initialOptions = {} }: { onClose: () => void; 
 
   const selectedResultId = results[selected]?.id;
   useEffect(() => {
-    if (selectedResultId) linksRef.current.get(resultKey(query, selectedResultId))?.scrollIntoView({ block: "nearest" });
-  }, [selectedResultId, query]);
+    if (!answerMode && selectedResultId) linksRef.current.get(resultKey(query, selectedResultId))?.scrollIntoView({ block: "nearest" });
+  }, [selectedResultId, query, answerMode]);
 
   const askAgent = async () => {
     if (!query.trim() || agentLoading) return;
     agentRef.current?.abort();
     const controller = new AbortController();
     agentRef.current = controller;
+    setAnswerMode(true); setAgentStopped(false); setProgress([]); setProgressOpen(true);
     setAgentLoading(true); setAgentError(""); setAnswer(""); setSources([]);
+    const queue = new AnswerStreamQueue((text) => { if (!controller.signal.aborted) setAnswer((previous) => previous + text); });
+    const cancelQueue = () => queue.cancel();
+    controller.signal.addEventListener("abort", cancelQueue, { once: true });
     try {
       const response = await fetch("/api/agent/search", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -88,7 +99,16 @@ export function Search({ onClose, initialOptions = {} }: { onClose: () => void; 
       const consume = (line: string) => {
         if (!line.trim() || controller.signal.aborted) return;
         const event = JSON.parse(line);
-        if (event.type === "delta") setAnswer((previous) => previous + event.text);
+        if (event.type === "delta" && typeof event.text === "string") queue.enqueue(event.text);
+        if (event.type === "progress" && typeof event.id === "string" && typeof event.label === "string"
+          && ["running", "completed", "error"].includes(event.state)) {
+          const next: AgentProgress = { id: event.id.slice(0, 80), kind: event.kind === "tool" ? "tool" : "status", label: event.label.slice(0, 200),
+            detail: typeof event.detail === "string" ? event.detail.slice(0, 300) : undefined, state: event.state };
+          setProgress((current) => {
+            const index = current.findIndex((item) => item.id === next.id);
+            return index < 0 ? [...current, next].slice(-24) : current.map((item, position) => position === index ? next : item);
+          });
+        }
         if (event.type === "sources") setSources(event.sources);
         if (event.type === "error") throw new Error(event.error);
         if (event.type === "done") doneEvent = true;
@@ -101,9 +121,14 @@ export function Search({ onClose, initialOptions = {} }: { onClose: () => void; 
         if (done) { consume(buffer); break; }
       }
       if (!doneEvent) throw new Error("답변 연결이 끊겼습니다. 다시 시도해 주세요.");
+      await queue.whenIdle();
     } catch (error) {
-      if (!controller.signal.aborted) { setAgentError(error.message); setAnswer(""); setSources([]); }
-    } finally { if (!controller.signal.aborted) setAgentLoading(false); }
+      if (!controller.signal.aborted) { setAgentError(error.message); setAnswer(""); setSources([]);
+        setProgress((current) => current.map((item) => item.state === "running" ? { ...item, state: "error" } : item)); }
+    } finally {
+      queue.cancel(); controller.signal.removeEventListener("abort", cancelQueue);
+      if (!controller.signal.aborted) { setAgentLoading(false); setProgressOpen(false); }
+    }
   };
 
   return <motion.div className="global-search-backdrop" aria-hidden={!isPresent || undefined}
@@ -133,9 +158,9 @@ export function Search({ onClose, initialOptions = {} }: { onClose: () => void; 
           onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => {
             if (event.nativeEvent.isComposing) return;
             if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void askAgent(); }
-            else if ((event.key === "ArrowDown" || event.key === "ArrowUp") && results.length) {
+            else if ((event.key === "ArrowDown" || event.key === "ArrowUp") && !answerMode && results.length) {
               event.preventDefault(); setSelected((previous) => (previous + (event.key === "ArrowDown" ? 1 : -1) + results.length) % results.length);
-            } else if (event.key === "Enter" && results[selected]) {
+            } else if (event.key === "Enter" && !answerMode && results[selected]) {
               event.preventDefault();
               void router.push(results[selected].href);
               onClose();
@@ -150,6 +175,7 @@ export function Search({ onClose, initialOptions = {} }: { onClose: () => void; 
       </div>
       {folder && <button className="global-search-folder" type="button" onClick={() => setFolder("")}>{folder.replaceAll("/", " / ")} · 폴더 제한 해제</button>}
       <motion.div className="global-search-body" layoutScroll>
+        {!answerMode && <>
         <div role="status" className="global-search-status">
           {!query.trim() ? "제목과 본문을 검색합니다. AI 답변은 질문하기를 눌렀을 때만 생성합니다." : error ? `${results.length ? `검색 결과 ${results.length}개 · ` : ""}${error}` : loading ? results.length ? `검색 결과 ${results.length}개 · 갱신 중…` : "검색 중입니다…" : `검색 결과 ${results.length}개`}
           {partial && <p>본문 검색에 연결하지 못해 제목 검색 결과만 표시합니다.</p>}
@@ -165,18 +191,33 @@ export function Search({ onClose, initialOptions = {} }: { onClose: () => void; 
             }} />)}
           </AnimatePresence>
         </motion.div>
-        {(agentLoading || answer || agentError) && <section className="global-search-answer" aria-label="AI 답변" aria-busy={agentLoading}>
+        </>}
+        {answerMode && <motion.section className="global-search-answer" aria-label="AI 답변" aria-busy={agentLoading}
+          initial={{ opacity: reducedMotion ? 1 : 0, y: reducedMotion ? 0 : 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reducedMotion ? 0 : .2 }}>
           <h3>AI 답변</h3>
-          {agentLoading && <p role="status">블로그에서 근거를 확인하고 있습니다…</p>}
+          {!!progress.length && <details className="global-search-progress" open={progressOpen} onToggle={(event) => setProgressOpen(event.currentTarget.open)}>
+            <summary>진행 과정 <span>{agentLoading ? "생성 중" : agentStopped ? "중지됨" : agentError ? "오류" : "완료"} · 도구 {progress.filter((item) => item.kind === "tool").length}회</span></summary>
+            <ol>{progress.map((item) => <li key={item.id} data-state={item.state}>
+              <span className="global-search-progress-state" aria-label={item.state === "running" ? "진행 중" : item.state === "completed" ? "완료" : item.state === "stopped" ? "중지" : "오류"}>{item.state === "running" ? "◌" : item.state === "completed" ? "✓" : "−"}</span>
+              <div><strong>{item.label}</strong>{item.detail && <small>{item.detail}</small>}</div>
+            </li>)}</ol>
+          </details>}
+          {agentLoading && <p role="status">{answer ? "답변을 작성하고 있습니다…" : "블로그에서 근거를 확인하고 있습니다…"}</p>}
+          {agentStopped && <p role="status">답변 생성을 중지했습니다.</p>}
           {agentError && <p role="alert">{agentError}</p>}
-          {answer && <p className="global-search-answer-text">{answer}</p>}
+          {answer && <AnswerMarkdown text={answer} reducedMotion={!!reducedMotion} sources={sources} onClose={onClose} />}
           {!!sources.length && <div aria-label="참고한 문서">{sources.map((source, index) => <Link key={source.id} href={source.href}
             onClick={(event) => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey) onClose(); }}>[{index + 1}] {source.title}</Link>)}</div>}
-        </section>}
+        </motion.section>}
       </motion.div>
       <div className="global-search-footer">
-        <button type="button" disabled={!query.trim() || agentLoading} onClick={() => void askAgent()}>AI에게 질문하기 <kbd>⌘/Ctrl ↵</kbd></button>
-        {agentLoading && <button type="button" onClick={() => { agentRef.current?.abort(); setAgentLoading(false); setAnswer(""); setSources([]); }}>중지</button>}
+        {answerMode && <button type="button" onClick={() => {
+          agentRef.current?.abort(); setAgentLoading(false); setAnswerMode(false); setAgentStopped(false);
+          inputRef.current?.focus({ preventScroll: true });
+        }}>검색 결과 보기</button>}
+        <button type="button" disabled={!query.trim() || agentLoading} onClick={() => void askAgent()}>{answerMode ? "다시 질문하기" : "AI에게 질문하기"} <kbd>⌘/Ctrl ↵</kbd></button>
+        {agentLoading && <button type="button" onClick={() => { agentRef.current?.abort(); setAgentLoading(false); setAgentStopped(true);
+          setProgress((current) => current.map((item) => item.state === "running" ? { ...item, state: "stopped" } : item)); }}>중지</button>}
       </div>
     </motion.div>
   </motion.div>;
