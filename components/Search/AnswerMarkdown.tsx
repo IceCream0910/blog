@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { parseAnswerInline, parseAnswerMarkdown, type AnswerInline } from "../../utils/search/answer-markdown";
 import type { SearchResult } from "../../utils/search/types";
 
-export function AnswerMarkdown({ text, reducedMotion, sources, onClose }: { text: string; reducedMotion: boolean; sources: SearchResult[]; onClose: () => void }) {
+export function AnswerMarkdown({ text, reducedMotion, sources }: { text: string; reducedMotion: boolean; sources: SearchResult[] }) {
   const words = (value: string, start: number) => reducedMotion ? value : Array.from(value.matchAll(/\s+|\S+/gu), (match) =>
     /^\s+$/.test(match[0]) ? match[0] : <motion.span key={start + match.index!} className="global-search-answer-word"
       initial={{ opacity: 0, y: 7, filter: "blur(5px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -15,8 +15,7 @@ export function AnswerMarkdown({ text, reducedMotion, sources, onClose }: { text
     if (token.kind === "code") return <code key={token.start}>{words(token.text, token.start)}</code>;
     if (token.kind === "citation") {
       const source = sources[Number(token.text) - 1];
-      return source ? <Link key={token.start} className="global-search-citation" href={source.href} aria-label={`참고 문서 ${token.text}: ${source.title}`}
-        onClick={(event) => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && event.button === 0) onClose(); }}>[{token.text}]</Link> : <React.Fragment key={token.start}>[{token.text}]</React.Fragment>;
+      return source ? <Link key={token.start} className="global-search-citation" href={source.href} target="_blank" rel="noopener noreferrer" aria-label={`참고 문서 ${token.text}: ${source.title} (새 탭)`}>[{token.text}]</Link> : <React.Fragment key={token.start}>[{token.text}]</React.Fragment>;
     }
     return <React.Fragment key={token.start}>{words(token.text, token.start)}</React.Fragment>;
   });

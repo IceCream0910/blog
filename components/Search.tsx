@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "framer-motion";
@@ -33,8 +33,9 @@ const SearchResultItem = React.forwardRef<HTMLAnchorElement, {
 
 export function Search({ onClose, initialOptions = {} }: { onClose: () => void; initialOptions?: SearchOptions }) {
   const router = useRouter();
+  const aiGradientId = useId();
   const [query, setQuery] = useState("");
-  const [scope, setScope] = useState<SearchScope>(initialOptions.scope || "all");
+  const [scope, setScope] = useState<SearchScope>("all");
   const [folder, setFolder] = useState(initialOptions.folder || "");
   const { results, loading, error, partial } = useSearchResults(query, scope, folder);
   const reducedMotion = useReducedMotion();
@@ -84,6 +85,12 @@ export function Search({ onClose, initialOptions = {} }: { onClose: () => void; 
     setAnswerMode(true); setAgentStopped(false); setProgress([]); setProgressOpen(true);
     setAgentLoading(true); setAgentError(""); setAnswer(""); setSources([]);
     const queue = new AnswerStreamQueue((text) => { if (!controller.signal.aborted) setAnswer((previous) => previous + text); });
+    let answerStarted = false;
+    const beginAnswer = () => {
+      if (answerStarted) return;
+      answerStarted = true;
+      setProgressOpen(false);
+    };
     const cancelQueue = () => queue.cancel();
     controller.signal.addEventListener("abort", cancelQueue, { once: true });
     try {
@@ -99,11 +106,15 @@ export function Search({ onClose, initialOptions = {} }: { onClose: () => void; 
       const consume = (line: string) => {
         if (!line.trim() || controller.signal.aborted) return;
         const event = JSON.parse(line);
-        if (event.type === "delta" && typeof event.text === "string") queue.enqueue(event.text);
+        if (event.type === "delta" && typeof event.text === "string" && event.text) {
+          beginAnswer();
+          queue.enqueue(event.text);
+        }
         if (event.type === "progress" && typeof event.id === "string" && typeof event.label === "string"
           && ["running", "completed", "error"].includes(event.state)) {
           const next: AgentProgress = { id: event.id.slice(0, 80), kind: event.kind === "tool" ? "tool" : "status", label: event.label.slice(0, 200),
             detail: typeof event.detail === "string" ? event.detail.slice(0, 300) : undefined, state: event.state };
+          if (next.id === "answer" && next.state === "running") beginAnswer();
           setProgress((current) => {
             const index = current.findIndex((item) => item.id === next.id);
             return index < 0 ? [...current, next].slice(-24) : current.map((item, position) => position === index ? next : item);
@@ -170,14 +181,26 @@ export function Search({ onClose, initialOptions = {} }: { onClose: () => void; 
         <button type="button" aria-label="검색 닫기" onClick={onClose}>닫기</button>
       </div>
       <div className="global-search-scopes" role="group" aria-label="검색 범위">
-        {SEARCH_SCOPES.map((value) => <button key={value} type="button" aria-pressed={scope === value}
-          onClick={() => { setScope(value); setFolder(""); }}>{scopeLabels[value]}</button>)}
+        <button type="button" className={answerMode ? "global-search-ai is-active" : "global-search-ai"} aria-pressed={answerMode} disabled={!query.trim()} onClick={() => { if (!answerMode) void askAgent(); }}>
+          <svg className="global-search-ai-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <defs><linearGradient id={aiGradientId} x1="0" y1="0" x2="1" y2="1">
+              <stop className="ai-gradient-start" offset="0%" stopColor="currentColor" /><stop className="ai-gradient-end" offset="100%" stopColor="currentColor" />
+            </linearGradient></defs>
+            <path fill={`url(#${aiGradientId})`} d="m10 2 2.8 7.2L20 12l-7.2 2.8L10 22l-2.8-7.2L0 12l7.2-2.8ZM20 1l1.1 2.9L24 5l-2.9 1.1L20 9l-1.1-2.9L16 5l2.9-1.1Z" />
+          </svg>
+          <span className="global-search-ai-label">AI</span>
+        </button>
+        {SEARCH_SCOPES.map((value) => <button key={value} type="button" aria-pressed={!answerMode && scope === value}
+          onClick={() => {
+            agentRef.current?.abort(); setAgentLoading(false); setAnswerMode(false); setAgentStopped(false);
+            setScope(value); setFolder("");
+          }}>{scopeLabels[value]}</button>)}
       </div>
       {folder && <button className="global-search-folder" type="button" onClick={() => setFolder("")}>{folder.replaceAll("/", " / ")} · 폴더 제한 해제</button>}
       <motion.div className="global-search-body" layoutScroll>
         {!answerMode && <>
         <div role="status" className="global-search-status">
-          {!query.trim() ? "제목과 본문을 검색합니다. AI 답변은 질문하기를 눌렀을 때만 생성합니다." : error ? `${results.length ? `검색 결과 ${results.length}개 · ` : ""}${error}` : loading ? results.length ? `검색 결과 ${results.length}개 · 갱신 중…` : "검색 중입니다…" : `검색 결과 ${results.length}개`}
+          {!query.trim() ? "제목과 본문을 검색합니다. 질문을 입력하고 AI 탭을 선택하면 답변을 생성합니다." : error ? `${results.length ? `검색 결과 ${results.length}개 · ` : ""}${error}` : loading ? results.length ? `검색 결과 ${results.length}개 · 갱신 중…` : "검색 중입니다…" : `검색 결과 ${results.length}개`}
           {partial && <p>본문 검색에 연결하지 못해 제목 검색 결과만 표시합니다.</p>}
         </div>
         {query.trim() && !loading && !error && !results.length && <p className="global-search-status">일치하는 글이 없습니다. 검색어 또는 범위를 바꿔 보세요.</p>}
@@ -202,23 +225,18 @@ export function Search({ onClose, initialOptions = {} }: { onClose: () => void; 
               <div><strong>{item.label}</strong>{item.detail && <small>{item.detail}</small>}</div>
             </li>)}</ol>
           </details>}
-          {agentLoading && <p role="status">{answer ? "답변을 작성하고 있습니다…" : "블로그에서 근거를 확인하고 있습니다…"}</p>}
+          {agentLoading && !answer && <p role="status">{progress.some((item) => item.id === "answer") ? "답변을 작성하고 있습니다…" : "블로그에서 근거를 확인하고 있습니다…"}</p>}
           {agentStopped && <p role="status">답변 생성을 중지했습니다.</p>}
           {agentError && <p role="alert">{agentError}</p>}
-          {answer && <AnswerMarkdown text={answer} reducedMotion={!!reducedMotion} sources={sources} onClose={onClose} />}
+          {answer && <AnswerMarkdown text={answer} reducedMotion={!!reducedMotion} sources={sources} />}
           {!!sources.length && <div aria-label="참고한 문서">{sources.map((source, index) => <Link key={source.id} href={source.href}
-            onClick={(event) => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey) onClose(); }}>[{index + 1}] {source.title}</Link>)}</div>}
+            target="_blank" rel="noopener noreferrer" aria-label={`${source.title} (새 탭)`}>[{index + 1}] {source.title}</Link>)}</div>}
         </motion.section>}
       </motion.div>
-      <div className="global-search-footer">
-        {answerMode && <button type="button" onClick={() => {
-          agentRef.current?.abort(); setAgentLoading(false); setAnswerMode(false); setAgentStopped(false);
-          inputRef.current?.focus({ preventScroll: true });
-        }}>검색 결과 보기</button>}
-        <button type="button" disabled={!query.trim() || agentLoading} onClick={() => void askAgent()}>{answerMode ? "다시 질문하기" : "AI에게 질문하기"} <kbd>⌘/Ctrl ↵</kbd></button>
+      {answerMode && agentLoading && <div className="global-search-footer">
         {agentLoading && <button type="button" onClick={() => { agentRef.current?.abort(); setAgentLoading(false); setAgentStopped(true);
           setProgress((current) => current.map((item) => item.state === "running" ? { ...item, state: "stopped" } : item)); }}>중지</button>}
-      </div>
+      </div>}
     </motion.div>
   </motion.div>;
 }

@@ -66,5 +66,7 @@ test('renderer escapes HTML, never creates model-provided links/images, and link
   assert.doesNotMatch(html, /<script|<img|href="javascript:/);
   assert.equal((html.match(/<a /g) || []).length, 1);
   assert.match(html, /href="\/forest"/);
+  assert.match(html, /target="_blank"/);
+  assert.match(html, /rel="noopener noreferrer"/);
   assert.doesNotMatch(html, /global-search-answer-word/);
 });
