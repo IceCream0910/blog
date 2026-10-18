@@ -874,6 +874,37 @@ svg.notion-page-icon {
     max-width: 100%;
 }
 
+.notion-progressive-image {
+    position: relative;
+    width: 100%;
+    flex-shrink: 0;
+    overflow: hidden;
+    border-radius: 15px;
+    background: color-mix(in srgb, var(--foreground) 5%, var(--background));
+}
+.notion-image-skeleton { position: absolute; inset: 0; overflow: hidden; transition: opacity 240ms ease; }
+.notion-image-skeleton::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(100deg, transparent 20%, color-mix(in srgb, var(--foreground) 7%, transparent) 50%, transparent 80%);
+    animation: notion-image-shimmer 1.4s ease-in-out infinite;
+}
+.notion-progressive-image > img {
+    position: absolute; inset: 0; display: block;
+    width: 100%; height: 100%; max-height: none; object-fit: contain;
+    opacity: 0; transition: opacity 280ms ease !important;
+}
+.notion-progressive-image > .notion-image-thumbnail { filter: blur(12px); transform: scale(1.04); pointer-events: none; }
+.notion-progressive-image[data-phase='preview'] > .notion-image-thumbnail { opacity: 1; }
+.notion-progressive-image[data-phase='ready'] > .notion-image-original { opacity: 1; }
+.notion-progressive-image:is([data-phase='preview'], [data-phase='ready']) > .notion-image-skeleton { opacity: 0; }
+.notion-progressive-image:is([data-phase='preview'], [data-phase='ready'], [data-phase='error']) > .notion-image-skeleton::after { animation: none; }
+.notion-image-error { position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; color: var(--foreground-transparent); font-size: .8rem; }
+@keyframes notion-image-shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) {
+    .notion-image-skeleton::after { animation: none; }
+    .notion-progressive-image > img, .notion-image-skeleton { transition: none !important; }
+}
+
 .notion-asset-wrapper-full {
     max-width: 100vw;
 }
@@ -916,6 +947,24 @@ svg.notion-page-icon {
 
 .notion .notion-code {
     font-size: 85%;
+    color: #ccc;
+    background: #2d2d2d;
+    white-space: pre;
+    line-height: 1.6;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+.notion-code > code {
+    display: block;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    white-space: inherit;
 }
 
 .notion-code {

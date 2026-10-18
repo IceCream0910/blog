@@ -1,10 +1,12 @@
 import type React from 'react'
 import { type BaseContentBlock, type Block } from 'notion-types'
-import { getTextContent } from 'notion-utils'
+import { getTextContent, normalizeUrl } from 'notion-utils'
 
 import { useNotionContext } from '../context'
 import { getUrlParams, getYoutubeId } from '../utils'
 import { LazyImage } from './lazy-image'
+import { ProgressiveImage } from './progressive-image'
+import { notionImageLayout, notionImageThumbnail } from '../../../utils/notion-image-placeholder'
 import { LiteYouTubeEmbed } from './lite-youtube-embed'
 
 const isServer = !globalThis.window
@@ -283,15 +285,22 @@ export function Asset({
     const altText = getTextContent(block.properties?.alt_text)
     const caption = getTextContent(block.properties?.caption)
     const alt = altText || caption || 'notion image'
+    const preview = recordMap.preview_images?.[src!] || recordMap.preview_images?.[normalizeUrl(src)] || recordMap.preview_images?.[source]
+    const dimensions = notionImageLayout(block.format, preview)
+    if (!components.Image) {
+      style.height = undefined
+      style.paddingBottom = undefined
+    }
 
     content = (
-      <LazyImage
+      components.Image ? <LazyImage
         src={src}
         alt={alt}
         zoomable={zoomable}
         height={style.height as number}
         style={assetStyle}
-      />
+      /> : <ProgressiveImage key={src} src={src!} thumbnail={preview?.dataURIBase64 || notionImageThumbnail(src!, block.id)} alt={alt}
+        width={dimensions.width} height={dimensions.height} zoomable={!!zoomable} />
     )
   }
 

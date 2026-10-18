@@ -1,6 +1,5 @@
 import { NotionAPI } from 'notion-client'
 import { NotionRenderer } from '../packages/notionx'
-import 'prismjs/themes/prism-tomorrow.css'
 import 'katex/dist/katex.min.css'
 import { useEffect, useRef } from 'react'
 import Comments from '../components/Comments'
@@ -155,6 +154,7 @@ export default function Page({ pageId, recordMap, summary }) {
 
     return (
         <motion.main
+            className="post-reading-layout"
             initial="hidden"
             animate="visible"
             exit="hidden"

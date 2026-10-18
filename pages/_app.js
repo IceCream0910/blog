@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect } from "react";
+import 'prismjs/themes/prism-tomorrow.css';
 import "../styles/globals.css";
 import '../styles/notion.css'
 import '../styles/recap.css'

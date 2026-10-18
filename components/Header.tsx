@@ -54,7 +54,7 @@ export const Header: React.FC = () => {
 
     return (
         <header
-            className={showThemeMenu ? "header-menu-open" : undefined}
+            className={`site-header${showThemeMenu ? " header-menu-open" : ""}`}
             style={{ mask: showThemeMenu ? 'unset' : 'linear-gradient(to bottom, var(--background) 45%, rgba(0, 0, 0, 0) 100%)', WebkitMask: showThemeMenu ? 'unset' : 'linear-gradient(to bottom, var(--background) 45%, rgba(0, 0, 0, 0) 100%)' }}>
             <div className="container mx-auto px-4 py-8 header-content">
                 <div className="header-leading">

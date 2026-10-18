@@ -29,11 +29,14 @@ type KnowledgeGraphProps = {
   activeId?: string;
   variant?: "compact" | "full";
   className?: string;
+  onNavigate?: (href: string, title?: string) => boolean;
 };
 
-export function KnowledgeGraph({ data, activeId, variant = "full", className = "" }: KnowledgeGraphProps) {
+export function KnowledgeGraph({ data, activeId, variant = "full", className = "", onNavigate }: KnowledgeGraphProps) {
   const hostRef = React.useRef<HTMLDivElement>(null);
   const svgRef = React.useRef<SVGSVGElement>(null);
+  const navigateRef = React.useRef(onNavigate);
+  React.useEffect(() => { navigateRef.current = onNavigate; }, [onNavigate]);
   const [size, setSize] = React.useState({ width: 0, height: 0 });
 
   useIsomorphicLayoutEffect(() => {
@@ -124,14 +127,19 @@ export function KnowledgeGraph({ data, activeId, variant = "full", className = "
       .attr("role", "link")
       .attr("aria-label", (item) => item.title)
       .on("click", (event, item) => {
-        if (!event.defaultPrevented) window.location.assign(item.href);
+        if (event.defaultPrevented) return;
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) { window.open(item.href, "_blank", "noopener,noreferrer"); return; }
+        if (!navigateRef.current?.(item.href, item.title)) window.location.assign(item.href);
       })
       .on("mouseenter", highlightConnections)
       .on("focus", highlightConnections)
       .on("mouseleave", clearHighlightedConnections)
       .on("blur", clearHighlightedConnections)
       .on("keydown", (event, item) => {
-        if (event.key === "Enter" || event.key === " ") window.location.assign(item.href);
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          if (!navigateRef.current?.(item.href, item.title)) window.location.assign(item.href);
+        }
       });
 
     node.append("circle").attr("r", (item) => {

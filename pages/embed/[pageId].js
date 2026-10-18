@@ -1,6 +1,5 @@
 import { NotionAPI } from 'notion-client'
 import { NotionRenderer } from '../../packages/notionx'
-import 'prismjs/themes/prism-tomorrow.css'
 import 'katex/dist/katex.min.css'
 import { useEffect, useState } from 'react'
 import { calculateReadingTime } from '../../utils/readingTime'

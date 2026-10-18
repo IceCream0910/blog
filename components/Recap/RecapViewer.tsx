@@ -922,7 +922,7 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
       const blocks = section.blockIds.map((id) => {
         const block = getBlockValue(post.recordMap, id);
         const element = elements.get(id);
-        const image = element?.querySelector<HTMLImageElement>("img");
+        const image = element?.querySelector<HTMLImageElement>(".notion-image-original") || element?.querySelector<HTMLImageElement>("img");
         const variants = Array.from(element?.querySelectorAll<HTMLElement>("[data-recap-copy-measure]") || []);
         const measured = Math.max(32, element?.getBoundingClientRect().height || 0, ...variants.map((node) => node.getBoundingClientRect().height));
         return { id, type: block?.type || "text", characters: getBlockStats(post.recordMap, id).characters,

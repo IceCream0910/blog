@@ -1,20 +1,8 @@
-// eslint-disable-next-line import/no-duplicates
-import 'prismjs'
-import 'prismjs/components/prism-clike.min.js'
-import 'prismjs/components/prism-css-extras.min.js'
-import 'prismjs/components/prism-css.min.js'
-import 'prismjs/components/prism-javascript.min.js'
-import 'prismjs/components/prism-js-extras.min.js'
-import 'prismjs/components/prism-json.min.js'
-import 'prismjs/components/prism-jsx.min.js'
-import 'prismjs/components/prism-tsx.min.js'
-import 'prismjs/components/prism-typescript.min.js'
-
 import copyToClipboard from 'clipboard-copy'
 import { type CodeBlock } from 'notion-types'
 import { getBlockTitle } from 'notion-utils'
-// eslint-disable-next-line import/no-duplicates, no-duplicate-imports
-import prism from 'prismjs'
+import { loadPrismLanguage, highlightPrismElement } from '../../../utils/load-prism-components'
+import { resolvePrismLanguage } from '../../../utils/prism-languages'
 import React from 'react'
 
 import { Text } from '../components/text'
@@ -35,32 +23,20 @@ export function Code({
   const copyTimeout = React.useRef<number | undefined>(undefined)
   const { recordMap } = useNotionContext()
   const content = getBlockTitle(block, recordMap)
-  const language = (() => {
-    const languageNotion = (
-      block.properties?.language?.[0]?.[0] || defaultLanguage
-    ).toLowerCase()
-
-    switch (languageNotion) {
-      case 'c++':
-        return 'cpp'
-      case 'f#':
-        return 'fsharp'
-      default:
-        return languageNotion
-    }
-  })()
+  const language = resolvePrismLanguage(block.properties?.language?.[0]?.[0] || defaultLanguage)
   const caption = block.properties.caption
 
   const codeRef = React.useRef<HTMLElement | null>(null)
   React.useEffect(() => {
-    if (codeRef.current) {
-      try {
-        prism.highlightElement(codeRef.current)
-      } catch (err) {
-        console.warn('prismjs highlight error', err)
-      }
-    }
-  }, [codeRef])
+    let cancelled = false
+    const element = codeRef.current
+    if (!element) return
+    element.textContent = content
+    void loadPrismLanguage(language).then((supported) => {
+      if (!cancelled && supported) highlightPrismElement(element)
+    }).catch((error) => { if (!cancelled) console.warn('Code syntax highlighting failed', error) })
+    return () => { cancelled = true }
+  }, [content, language])
 
   const onClickCopyToClipboard = React.useCallback(() => {
     void copyToClipboard(content)

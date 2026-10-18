@@ -15,6 +15,10 @@
   padding: 18px 20px 0;
 }
 
+.backlink-graph-heading:last-child {
+  padding-bottom: 18px;
+}
+
 .backlink-graph-heading>div {
   display: grid;
   gap: 3px;

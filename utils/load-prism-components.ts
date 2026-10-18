@@ -1,59 +1,31 @@
-import pRetry from 'p-retry';
+import prism from 'prismjs';
+import { prismLanguageDependencies, resolvePrismLanguage } from './prism-languages';
 
-type ImportFn = () => Promise<any>;
+prism.manual = true;
+const pending = new Map<string, Promise<boolean>>();
+let queue: Promise<unknown> = Promise.resolve();
 
-export const loadPrismComponents = async (importFns: ImportFn[]) => {
-    const errorIndexes: number[] = [];
-
-    const results = await Promise.allSettled(importFns.map(fn => fn()));
-
-    results.forEach((result, index) => {
-        if (result.status === 'rejected') {
-            errorIndexes.push(index);
-        }
-    });
-
-    return {
-        results,
-        errorIndexes,
-    };
-};
-
-export const loadPrismComponentsWithRetry = async (importFns: ImportFn[]) => {
-    const { errorIndexes } = await loadPrismComponents(importFns);
-
-    if (errorIndexes.length) {
-        let retryFns = errorIndexes.map(index => importFns[index]);
-
-        // console.log('[retrying start] load prism components', retryFns);
-
-        try {
-            await pRetry(
-                async () => {
-                    const { errorIndexes } = await loadPrismComponents(retryFns);
-
-                    if (errorIndexes.length) {
-                        retryFns = errorIndexes.map(index => importFns[index]);
-                        throw new Error('retry');
-                    }
-                },
-                {
-                    minTimeout: 100,
-                    maxTimeout: 1000,
-                    onFailedAttempt: error => {
-                        console.log(
-                            `Attempt ${error.attemptNumber} failed. There are ${error.retriesLeft} retries left.`,
-                        );
-                    },
-                    retries: 2,
-                },
-            );
-
-            // console.log('[retrying end] load prism components success');
-        } catch (err) {
-            console.warn(
-                'code block syntax highlighting failed to load, some code blocks may not be properly syntax highlighted',
-            );
-        }
+export function loadPrismLanguage(value: string): Promise<boolean> {
+  const language = resolvePrismLanguage(value);
+  if (language === 'none') return Promise.resolve(false);
+  if (pending.has(language)) return pending.get(language)!;
+  // Prism grammars mutate shared state; load dependency chains in order.
+  const request = queue.then(async () => {
+    for (const id of prismLanguageDependencies(language)) {
+      if (prism.languages[id]) continue;
+      await import(
+        /* webpackInclude: /prism-[\w-]+\.js$/ */
+        `prismjs/components/prism-${id}.js`
+      );
     }
-};
+    return !!prism.languages[language];
+  });
+  pending.set(language, request);
+  queue = request.catch(() => undefined);
+  void request.catch(() => pending.delete(language));
+  return request;
+}
+
+export function highlightPrismElement(element: HTMLElement) {
+  prism.highlightElement(element);
+}

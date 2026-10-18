@@ -8,9 +8,10 @@ import { motion } from "framer-motion";
 interface BacklinksProps {
   currentId: string;
   currentTitle?: string;
+  onNavigate?: (href: string, title?: string) => boolean;
 }
 
-export const Backlinks: React.FC<BacklinksProps> = ({ currentId, currentTitle = "현재 문서" }) => {
+export const Backlinks: React.FC<BacklinksProps> = ({ currentId, currentTitle = "현재 문서", onNavigate }) => {
   const [sources, setSources] = React.useState<ReturnType<typeof resolveBacklinkSources>>([]);
 
   React.useEffect(() => {
@@ -61,7 +62,7 @@ export const Backlinks: React.FC<BacklinksProps> = ({ currentId, currentTitle = 
 
         </Link>
       </div>
-      <KnowledgeGraph data={graph} activeId={currentId} variant="compact" />
+      {!!sources.length && <KnowledgeGraph data={graph} activeId={currentId} variant="compact" onNavigate={onNavigate} />}
     </section>
   );
 };

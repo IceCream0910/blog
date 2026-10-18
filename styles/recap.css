@@ -3528,6 +3528,8 @@ body:has(.recap-help-overlay) header {
 }
 
 .recap-body-slide.recap-layout-immersive {
+  --foreground: #fff;
+  --foreground-transparent: rgba(255, 255, 255, 0.72);
   position: relative;
   height: 100%;
   isolation: isolate;
@@ -3549,6 +3551,15 @@ body:has(.recap-help-overlay) header {
   z-index: -2;
   max-height: none;
   overflow: hidden;
+}
+
+.recap-layout-immersive .recap-media-pane::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.54);
 }
 
 .recap-layout-immersive .recap-media-pane::after {
@@ -3588,9 +3599,11 @@ body:has(.recap-help-overlay) header {
   overflow-y: auto;
 }
 
-.recap-layout-immersive .is-textual .notion,
-.recap-layout-immersive .is-textual .notion-text {
-  color: white;
+.recap-layout-immersive .recap-copy-pane,
+.recap-layout-immersive .recap-copy-pane .notion,
+.recap-layout-immersive .recap-copy-pane .notion *,
+.recap-layout-immersive .recap-narrated-text {
+  color: #fff !important;
 }
 
 .recap-layout-immersive .recap-image-stack {
@@ -3720,4 +3733,35 @@ body:has(.recap-help-overlay) header {
   font-weight: 750;
   color: inherit;
   overflow-wrap: anywhere;
+}
+
+/* Progressive layers need a sized frame; fit-content cannot size absolute images. */
+.recap-shell .recap-body-slide .recap-rendered-block.is-visual .notion-asset-wrapper-image:has(.notion-progressive-image),
+.recap-shell .recap-body-slide .recap-rendered-block.is-visual .notion-asset-wrapper-image:has(.notion-progressive-image)>div {
+  width: 100% !important;
+}
+.recap-notion-content .notion-progressive-image,
+.recap-measurer .notion-progressive-image {
+  width: min(100%, calc(var(--recap-visual-max-height, 52vh) * var(--notion-image-ratio)));
+  margin-inline: auto;
+  object-fit: contain;
+}
+.recap-shell .recap-body-slide .recap-rendered-block.is-visual .notion-asset-wrapper-image .notion-progressive-image>img,
+.recap-measurer .notion-progressive-image>img {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  margin: 0 !important;
+  object-fit: inherit !important;
+  border-radius: inherit !important;
+  clip-path: none !important;
+}
+.recap-stack-card .notion-progressive-image,
+.recap-layout-immersive .recap-media-pane .notion-progressive-image {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  aspect-ratio: auto !important;
+  object-fit: cover;
+  border-radius: 0;
 }
