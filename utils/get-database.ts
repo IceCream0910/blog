@@ -1,3 +1,5 @@
+import { fetchNotionJson } from './notion-fetch';
+
 export async function getDatabase(databaseId, body = {}) {
     if (!databaseId) {
         throw new Error('Database ID is required');
@@ -27,12 +29,7 @@ export async function getDatabase(databaseId, body = {}) {
                 body: JSON.stringify(requestBody),
             };
 
-            const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, options);
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Failed to fetch data');
-            }
+            const data = await fetchNotionJson(`https://api.notion.com/v1/databases/${databaseId}/query`, options);
 
             results = [...results, ...data.results];
 

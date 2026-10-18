@@ -1,33 +1,12 @@
-import { NotionAPI } from 'notion-client'
 import { NotionRenderer } from '../../packages/notionx'
 import 'katex/dist/katex.min.css'
 import { useEffect, useState } from 'react'
 import { calculateReadingTime } from '../../utils/readingTime'
 import { Code, Collection, Equation, Pdf, Modal } from '../../utils/notion-components'
-import { getDatabase } from "../../utils/get-database"
+import { deferredNotionPaths, getNotionPage, isNotionNotFound } from '../../utils/get-notion-page'
 
 export async function getStaticPaths() {
-    try {
-        const [mainData, forestData] = await Promise.all([
-            getDatabase("1a346171ed574b0a9c1c3f5a29b39919"),
-            getDatabase("ff85c8c8bc3345babf2f7970d86506d4")
-        ]);
-
-        const paths = [...mainData.results, ...forestData.results].map((page) => ({
-            params: { pageId: page.id }
-        }));
-
-        return {
-            paths,
-            fallback: 'blocking'
-        }
-    } catch (error) {
-        console.error('Error fetching databases:', error);
-        return {
-            paths: [],
-            fallback: 'blocking'
-        }
-    }
+    return deferredNotionPaths();
 }
 
 export async function getStaticProps({ params }) {
@@ -55,24 +34,7 @@ export async function getStaticProps({ params }) {
     );
 
     try {
-        const notion = new NotionAPI({
-            apiBaseUrl: 'https://app.notion.com/api/v3',
-        })
-        const recordMap = await notion.getPage(pageId)
-
-        if (!recordMap || !recordMap.block || Object.keys(recordMap.block).length === 0) {
-            return {
-                notFound: true
-            }
-        }
-
-        // Notion API response format change fallback: un-nest extra 'value' wrapper
-        Object.keys(recordMap.block).forEach(key => {
-            const b = recordMap.block[key];
-            if (b && b.value && b.value.value && b.value.role) {
-                recordMap.block[key] = b.value;
-            }
-        });
+        const recordMap = await getNotionPage(pageId)
 
         return {
             props: {
@@ -83,28 +45,14 @@ export async function getStaticProps({ params }) {
         }
     } catch (error) {
         console.error('Error fetching page:', error);
-        return {
-            notFound: true
-        }
+        if (isNotionNotFound(error)) return { notFound: true, revalidate: 60 };
+        throw error;
     }
 }
 
 export default function Page({ pageId, recordMap }) {
     if (!recordMap || !recordMap.block || Object.keys(recordMap.block).length === 0) {
         return <div>Invalid page data</div>;
-    }
-
-    const properties = recordMap.block[pageId].value.properties;
-    var title, category, tags;
-
-    if (properties["fVc<"]) {
-        title = properties.title[0][0];
-        category = properties["fVc<"][0][0];
-        tags = properties["f|n]"].toString().split(',')
-    } else {
-        title = properties.title[0][0];
-        category = ""
-        tags = []
     }
 
     const [content, setContent] = useState('');
