@@ -8,6 +8,7 @@ import SkyGradient from "./SkyGradient";
 import RecapCover from "./RecapCover";
 import ImageStack from "./ImageStack";
 import { paginateRecapSection, type RecapBodyLayout } from "../../utils/recap-pagination";
+import { recapIntroUrls } from "../../utils/recap-intro";
 import { useRouter } from "next/router";
 
 type RecapItem = Record<string, string>;
@@ -289,12 +290,6 @@ function MusicContent({ slide, activeIndex, musicById, onToggleAutoplay }: { sli
       </AnimatePresence>
     </div>
   );
-}
-
-function recapIntroUrl(postId?: string) {
-  let hash = 5381;
-  for (const character of postId || "") hash = (hash * 33) ^ character.charCodeAt(0);
-  return `/recap_intro${((hash >>> 0) % 4) + 1}.mp3`;
 }
 
 function muteIfAutoplayBlocked(error: unknown, mute: () => void) {
@@ -772,7 +767,8 @@ export function RecapViewer({ posts }: { posts: RecapPost[] }) {
     : [], [soundEnabled, narrationQueue, narrationQueueIndex]);
   const isCover = activeSlide.type === "cover";
   const isFullyLoaded = deckReady;
-  const introUrl = useMemo(() => recapIntroUrl(post?.id), [post?.id]);
+  const introUrls = useMemo(() => recapIntroUrls(posts.map((item) => item.title)), [posts]);
+  const introUrl = introUrls[postIndex];
   const activePropertyKey = activeSlide.type === "property" ? activeSlide.key : undefined;
   const activeMusicItem = activeSlide.type === "property" && activeSlide.key === "music"
     ? enrichMusicItem(activeSlide.items[propertyItemIndex] || {}, musicById)

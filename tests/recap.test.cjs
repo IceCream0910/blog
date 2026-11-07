@@ -7,6 +7,34 @@ require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileMo
 }).outputText, filename);
 const { paginateRecapSection, recapCoverTitle } = require('../utils/recap-pagination.ts');
 const { SKY_PRESETS, chooseSkyPreset, skyPresetForPost, skyTones } = require('../utils/recap-sky-presets.ts');
+const { recapIntroUrls } = require('../utils/recap-intro.ts');
+
+test('intro assignment is deterministic and preserves choices when newer posts are added', () => {
+  const titles = Array.from({ length: 50 }, (_, i) => `월말결산 ${50 - i}`);
+  const urls = recapIntroUrls(titles);
+  assert.deepEqual(recapIntroUrls(titles), urls);
+  assert.deepEqual(recapIntroUrls(['새로운 월말결산', ...titles]).slice(1), urls);
+  assert.notEqual(recapIntroUrls(['제목 A'])[0], recapIntroUrls(['제목 B'])[0]);
+  assert.deepEqual(recapIntroUrls([]), []);
+});
+
+test('intro cycles use all 14 tracks once and never repeat adjacent tracks', () => {
+  for (const repeatedTitles of [false, true]) {
+    const titles = Array.from({ length: 1000 }, (_, i) => repeatedTitles ? '월말결산' : `월말결산 ${i}`);
+    const urls = recapIntroUrls(titles).reverse();
+    const counts = new Map();
+    urls.forEach((url, index) => {
+      assert.ok(fs.existsSync(`${__dirname}/../public${url}`));
+      if (index) assert.notEqual(url, urls[index - 1]);
+      counts.set(url, (counts.get(url) || 0) + 1);
+    });
+    for (let start = 0; start + 14 <= urls.length; start += 14) {
+      assert.equal(new Set(urls.slice(start, start + 14)).size, 14);
+    }
+    assert.equal(counts.size, 14);
+    assert.ok(Math.max(...counts.values()) - Math.min(...counts.values()) <= 1);
+  }
+});
 const options = { budget: 600, gap: 20, sideBySide: false, lineHeight: 28 };
 const text = (id, height = 130) => ({ id, type: 'text', height, characters: 100 });
 const image = id => ({ id, type: 'image', height: 280, characters: 0 });
