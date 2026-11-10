@@ -82,6 +82,8 @@
 :root {
   --background: #fff;
   --foreground: #171717;
+  --body-text: #30343b;
+  --body-line-height: 1.8;
   --foreground-transparent: #17171780;
   --blur: #f2f4fe40;
   --secondary: #f2f3f7;
@@ -105,6 +107,7 @@
   :root:not(.light) {
     --background: #1a1b1e;
     --foreground: #ededed;
+    --body-text: #e0e2e7;
     --foreground-transparent: #ededed80;
     --blur: #26293820;
     --secondary: #313131;
@@ -127,6 +130,7 @@
 :root.dark, html.dark {
   --background: #1a1b1e;
   --foreground: #ededed;
+  --body-text: #e0e2e7;
   --foreground-transparent: #ededed80;
   --blur: #26293820;
   --secondary: #313131;
@@ -519,7 +523,7 @@ h3 {
 
 p {
   margin: 1rem 0;
-  line-height: 1.75;
+  line-height: var(--body-line-height);
 }
 
 ul,

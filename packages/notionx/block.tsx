@@ -848,9 +848,11 @@ export function Block(props: BlockProps) {
 
     case 'table':
       return (
-        <table className={cs('notion-simple-table', blockId)}>
-          <tbody>{children}</tbody>
-        </table>
+        <div className='notion-simple-table-wrapper'>
+          <table className={cs('notion-simple-table', blockId)}>
+            <tbody>{children}</tbody>
+          </table>
+        </div>
       )
 
     case 'table_row': {
@@ -887,10 +889,12 @@ export function Block(props: BlockProps) {
             const color = formatMap?.[column]?.color
 
             const isHeaderColumn = hasColumnHeader && columnIndex === 0
+            const Cell = isHeaderRow || isHeaderColumn ? 'th' : 'td'
 
             return (
-              <td
+              <Cell
                 key={column}
+                scope={isHeaderRow ? 'col' : isHeaderColumn ? 'row' : undefined}
                 className={cs(
                   color ? `notion-${color}` : '',
                   isHeaderColumn && 'notion-simple-table-header-cell'
@@ -905,7 +909,7 @@ export function Block(props: BlockProps) {
                     block={block}
                   />
                 </div>
-              </td>
+              </Cell>
             )
           })}
         </tr>

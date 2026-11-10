@@ -427,7 +427,7 @@
   width: 100% !important;
 }
 
-.forest-notion-document :is(.notion-simple-table, .notion-table, .notion-collection) {
+.forest-notion-document :is(.notion-table, .notion-collection) {
   display: block;
   overflow-x: auto;
 }
