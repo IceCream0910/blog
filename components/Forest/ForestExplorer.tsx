@@ -113,7 +113,7 @@ export function ForestExplorer({ documents }: { documents: ForestDocument[] }) {
     return true;
   };
 
-  return <main className={`forest-explorer ${panels.length ? "has-panels" : "is-index"} ${draggedId ? "is-dragging" : ""}`}>
+  return <main className={`forest-explorer ${panels.length ? "has-panels" : "is-index"}`}>
     <aside className="forest-sidebar" aria-label="문서 목록">
 
       <div className="forest-sidebar-toolbar"><span className="forest-document-count">문서 {documents.length}개</span><div className="forest-sidebar-actions"><button className="forest-icon-button" type="button" disabled={!allFolders.size} title={allExpanded ? "모든 폴더 접기" : "모든 폴더 펼치기"}
@@ -154,6 +154,13 @@ export function ForestExplorer({ documents }: { documents: ForestDocument[] }) {
         setDraggedId(""); setDropSide(null);
       }}>
       <div ref={viewportRef} className="forest-panel-viewport"><div className="forest-panel-track">
+      {!panels.length && !appendPreview && <div className="forest-document-placeholder">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 7h16l8 8v22a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4V7Z" />
+          <path d="M28 7v8h8M18 23h12M18 29h12M18 35h7" />
+        </svg>
+        <p>원하는 문서를 열어보세요.</p>
+      </div>}
       {panels.map((id, index) => <ForestPanel key={id} document={documentsById.get(id) || linkedDocuments[id] || { id, title: "문서", folderPath: "", createdTime: "", lastEditedTime: "" }}
         anchor={id === panels.at(-1) ? router.asPath.split("#")[1] || "" : ""}
         collapsed={index < firstVisible || index >= firstVisible + visibleCount} mobileVisible={id === focusedId}

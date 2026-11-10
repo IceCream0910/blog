@@ -20,16 +20,6 @@
   border-right: 1px solid var(--forest-line);
 }
 
-.forest-explorer.is-index {
-  justify-content: center;
-}
-
-.forest-explorer.is-index .forest-sidebar {
-  flex-basis: 620px;
-  max-width: 100%;
-  border-right: 0;
-}
-
 .forest-sidebar-toolbar {
   display: flex;
   flex-shrink: 0;
@@ -189,8 +179,27 @@
 }
 .forest-drop-placeholder span { color: var(--forest-muted); font-size: .85rem; }
 
-.forest-explorer.is-index .forest-panel-stack {
-  display: none;
+.forest-document-placeholder {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  color: var(--forest-muted);
+  text-align: center;
+}
+
+.forest-document-placeholder svg {
+  width: 48px;
+  height: 48px;
+  color: var(--primary);
+}
+
+.forest-document-placeholder p {
+  margin: 0;
+  font-size: .95rem;
 }
 
 .forest-panel {
@@ -502,18 +511,6 @@
   font-size: .8rem;
 }
 
-.forest-explorer.is-index.is-dragging {
-  justify-content: flex-start;
-}
-
-.forest-explorer.is-index.is-dragging .forest-sidebar {
-  flex-basis: 280px;
-}
-
-.forest-explorer.is-index.is-dragging .forest-panel-stack {
-  display: flex;
-}
-
 .forest-explorer :is(button, a, select):focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: -2px;
@@ -541,8 +538,7 @@
     padding-inline: 4px;
   }
 
-  .forest-sidebar,
-  .forest-explorer.is-index .forest-sidebar {
+  .forest-sidebar {
     flex: 1;
     max-width: 100%;
     padding: 20px 14px 12px;
