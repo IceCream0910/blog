@@ -3,7 +3,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const ts = require('typescript');
 require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText, filename);
-const { deferredNotionPaths, normalizeNotionRecordMap, isNotionNotFound } = require('../utils/get-notion-page.ts');
+const { normalizeNotionRecordMap, isNotionNotFound } = require('../utils/get-notion-page.ts');
+const { notionPrerenderPaths, readPrerenderedNotionPage } = require('../utils/notion-prerender-data.ts');
+const { drainNotionPrerenderQueue } = require('../utils/notion-prerender-queue.ts');
 const { fetchNotionJson } = require('../utils/notion-fetch.ts');
 const id = '3fdfc9b9-3eca-8041-b98c-ca653f320b1c';
 
@@ -32,23 +34,62 @@ function pageFunctions(path, getNotionPage) {
   const source = ts.createSourceFile(path, fs.readFileSync(path,'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
   const printer = ts.createPrinter();
   const code = source.statements.filter(node => ts.isFunctionDeclaration(node) && ['getStaticPaths','getStaticProps'].includes(node.name?.text)).map(node => printer.printNode(ts.EmitHint.Unspecified,node,source).replace(/^export\s+/, '')).join('\n');
-  return new Function('deferredNotionPaths','getNotionPage','isNotionNotFound','manageSummary','extractTextFromRecordMap','console',code+'\nreturn {getStaticPaths,getStaticProps};')(deferredNotionPaths,getNotionPage,isNotionNotFound,async()=>null,()=>'',{error(){}});
+  return new Function('notionPrerenderPaths','readPrerenderedNotionPage','getNotionPage','isNotionNotFound','manageSummary','extractTextFromRecordMap','console',code+'\nreturn {getStaticPaths,getStaticProps};')(notionPrerenderPaths,readPrerenderedNotionPage,getNotionPage,isNotionNotFound,async()=>null,()=>'',{error(){}});
 }
-test('both actual page loaders defer build fetching and rethrow 429 so a later request can regenerate', async () => {
+test('both page loaders use prepared posts and retain blocking fallback for skipped posts', async (t) => {
+  const previous = process.env.NOTION_PRERENDER_DIR;
+  const dir = fs.mkdtempSync(require('node:path').join(require('node:os').tmpdir(), 'notion-prerender-test-'));
+  t.after(() => {
+    if (previous === undefined) delete process.env.NOTION_PRERENDER_DIR;
+    else process.env.NOTION_PRERENDER_DIR = previous;
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  process.env.NOTION_PRERENDER_DIR = dir;
+  fs.writeFileSync(`${dir}/paths.json`, JSON.stringify([id]));
+  fs.writeFileSync(`${dir}/${id}.json`, JSON.stringify({ recordMap: { block: { [id]: { value: { id, type: 'page' } } } } }));
+  const skipped = '4fdfc9b9-3eca-8041-b98c-ca653f320b1c';
   for (const path of ['pages/[pageId].js','pages/embed/[pageId].js']) {
     let calls=0;
     let reason = Object.assign(new Error('rate limited'),{statusCode:429});
     const page=pageFunctions(path,async()=>{calls++;throw reason;});
-    assert.deepEqual(await page.getStaticPaths(),{paths:[],fallback:'blocking'});
-    assert.equal(calls,0);
-    await assert.rejects(page.getStaticProps({params:{pageId:id}}),error=>error===reason);
-    reason=Object.assign(new Error('not found'),{statusCode:404});
-    assert.deepEqual(await page.getStaticProps({params:{pageId:id}}),{notFound:true,revalidate:60});
-    const success=pageFunctions(path,async()=>({block:{[id]:{value:{id,type:'page'}}}}));
-    const result=await success.getStaticProps({params:{pageId:id}});
+    assert.deepEqual(await page.getStaticPaths(),{paths:[{params:{pageId:id}}],fallback:'blocking'});
+    const result=await page.getStaticProps({params:{pageId:id}});
     assert.equal(result.props.pageId,id);
     assert.equal(result.revalidate,10);
+    assert.equal(calls,0);
+    await assert.rejects(page.getStaticProps({params:{pageId:skipped}}),error=>error===reason);
+    reason=Object.assign(new Error('not found'),{statusCode:404});
+    assert.deepEqual(await page.getStaticProps({params:{pageId:skipped}}),{notFound:true,revalidate:60});
   }
+});
+
+test('prerender retries later, honors a shared Notion cooldown and keeps successes when the budget runs out', async () => {
+  let time = 0;
+  const calls = [];
+  const done = await drainNotionPrerenderQueue(['ok', 'retry', 'ready', 'retry', 'missing', 'long', 'skipped'], async (id) => {
+    calls.push([id, time]);
+    if (id === 'retry' && time === 0) throw { status: 503 };
+    if (id === 'ready') {
+      time += 2000;
+      if (calls.filter(([id]) => id === 'ready').length === 1) throw { response: { status: 429, headers: new Headers({ 'Retry-After': '3' }) } };
+    }
+    if (id === 'missing') throw { status: 404 };
+    if (id === 'long') throw { response: { status: 429, headers: new Headers({ 'Retry-After': '30' }) } };
+  }, { deadline: 10_000, attemptMs: 1000, maxAttempts: 3, now: () => time, wait: async (ms) => { time += ms; } });
+  assert.deepEqual(calls, [['ok', 0], ['retry', 0], ['ready', 0], ['missing', 5000], ['long', 5000]]);
+  assert.deepEqual(done, ['ok']);
+});
+
+test('temporary failures go to the back of the queue and persistent failures stop after three attempts', async () => {
+  let time = 0;
+  const calls = [];
+  const done = await drainNotionPrerenderQueue(['retry', 'persistent', 'ready'], async (id) => {
+    const seen = calls.includes(id);
+    calls.push(id);
+    if (id === 'persistent' || (id === 'retry' && !seen)) throw { status: 503 };
+  }, { deadline: 10_000, attemptMs: 1000, maxAttempts: 3, now: () => time, wait: async (ms) => { time += ms; } });
+  assert.deepEqual(calls, ['retry', 'persistent', 'ready', 'retry', 'persistent', 'persistent']);
+  assert.deepEqual(done, ['ready', 'retry']);
 });
 
 test('database 429 respects Retry-After, bounds retries, and never retries auth failures or long cooldowns early', async () => {

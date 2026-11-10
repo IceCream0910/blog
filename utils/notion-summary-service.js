@@ -8,6 +8,11 @@ function createHash(text) {
     return crypto.createHash('md5').update(text).digest('hex');
 }
 
+export function getCachedSummary(value, contentText) {
+    const match = value.match(/^\[([a-f0-9]{32})\]\s([\s\S]*)$/);
+    return match && match[1] === createHash(contentText) ? match[2] : null;
+}
+
 export async function manageSummary(pageId, contentText) {
     if (!contentText) return null;
 

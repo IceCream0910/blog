@@ -1,6 +1,6 @@
 import { fetchNotionJson } from './notion-fetch';
 
-export async function getDatabase(databaseId, body = {}) {
+export async function getDatabase(databaseId, body = {}, signal?: AbortSignal) {
     if (!databaseId) {
         throw new Error('Database ID is required');
     }
@@ -21,6 +21,7 @@ export async function getDatabase(databaseId, body = {}) {
 
             const options = {
                 method: 'POST',
+                signal,
                 headers: {
                     'Notion-Version': '2022-06-28',
                     'Content-Type': 'application/json',

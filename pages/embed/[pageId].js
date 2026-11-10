@@ -3,10 +3,11 @@ import 'katex/dist/katex.min.css'
 import { useEffect, useState } from 'react'
 import { calculateReadingTime } from '../../utils/readingTime'
 import { Code, Collection, Equation, Pdf, Modal } from '../../utils/notion-components'
-import { deferredNotionPaths, getNotionPage, isNotionNotFound } from '../../utils/get-notion-page'
+import { getNotionPage, isNotionNotFound } from '../../utils/get-notion-page'
+import { notionPrerenderPaths, readPrerenderedNotionPage } from '../../utils/notion-prerender-data'
 
 export async function getStaticPaths() {
-    return deferredNotionPaths();
+    return notionPrerenderPaths();
 }
 
 export async function getStaticProps({ params }) {
@@ -27,14 +28,14 @@ export async function getStaticProps({ params }) {
         };
     }
 
-    const compactPageId = pageIdMatch[1].replace(/-/g, '');
+    const compactPageId = pageIdMatch[1].replace(/-/g, '').toLowerCase();
     const pageId = compactPageId.replace(
         /(.{8})(.{4})(.{4})(.{4})(.{12})/,
         '$1-$2-$3-$4-$5'
     );
 
     try {
-        const recordMap = await getNotionPage(pageId)
+        const recordMap = readPrerenderedNotionPage(pageId)?.recordMap ?? await getNotionPage(pageId);
 
         return {
             props: {

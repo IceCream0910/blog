@@ -1,4 +1,6 @@
-export async function fetchNotionJson(url: string, options: RequestInit, wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))) {
+import { setTimeout as sleep } from 'node:timers/promises';
+
+export async function fetchNotionJson(url: string, options: RequestInit, wait = (ms: number) => sleep(ms, undefined, { signal: options.signal ?? undefined })) {
   for (let attempt = 0; ; attempt++) {
     const response = await fetch(url, options);
     const data = await response.json().catch(() => null);

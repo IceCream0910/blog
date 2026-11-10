@@ -6,8 +6,9 @@ import { Backlinks } from '../components/Backlinks'
 import { PageHead } from '../components/PageHead'
 import { motion } from 'framer-motion';
 import { Code, Collection, Equation, Modal } from '../utils/notion-components'
-import { deferredNotionPaths, getNotionPage, isNotionNotFound } from '../utils/get-notion-page'
-import { manageSummary } from '../utils/notion-summary-service'
+import { getNotionPage, isNotionNotFound } from '../utils/get-notion-page'
+import { notionPrerenderPaths, readPrerenderedNotionPage } from '../utils/notion-prerender-data'
+import { getCachedSummary, manageSummary } from '../utils/notion-summary-service'
 import { extractTextFromRecordMap } from '../utils/extract-text'
 
 import { usePostMetadata } from '../hooks/usePostMetadata'
@@ -18,7 +19,7 @@ import { PostHeader } from '../components/Post/PostHeader'
 import { PostActions } from '../components/Post/PostActions'
 
 export async function getStaticPaths() {
-    return deferredNotionPaths();
+    return notionPrerenderPaths();
 }
 
 export async function getStaticProps({ params }) {
@@ -39,14 +40,15 @@ export async function getStaticProps({ params }) {
         };
     }
 
-    const compactPageId = pageIdMatch[1].replace(/-/g, '');
+    const compactPageId = pageIdMatch[1].replace(/-/g, '').toLowerCase();
     const pageId = compactPageId.replace(
         /(.{8})(.{4})(.{4})(.{4})(.{12})/,
         '$1-$2-$3-$4-$5'
     );
 
     try {
-        const recordMap = await getNotionPage(pageId)
+        const prepared = readPrerenderedNotionPage(pageId);
+        const recordMap = prepared?.recordMap ?? await getNotionPage(pageId);
 
         // Check if it's a post (has category)
         const block = recordMap.block[pageId].value;
@@ -55,7 +57,7 @@ export async function getStaticProps({ params }) {
         let summary = null;
         if (isPost) {
             const text = extractTextFromRecordMap(recordMap);
-            summary = await manageSummary(pageId, text);
+            summary = prepared ? getCachedSummary(prepared.cachedSummary, text) : await manageSummary(pageId, text);
         }
 
         return {
