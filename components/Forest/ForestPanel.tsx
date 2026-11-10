@@ -96,7 +96,7 @@ export function ForestPanel({ document: doc, anchor, collapsed, mobileVisible, o
             }}>
               <NotionRenderer recordMap={recordMap} components={components} fullPage={false} darkMode={darkMode} showTableOfContents={false} previewImages={!!recordMap.preview_images} />
             </div>
-            <Backlinks currentId={doc.id} currentTitle={title} onNavigate={onNavigate} />
+            <Backlinks currentId={doc.id} currentTitle={title} recordMap={recordMap} onNavigate={onNavigate} />
             <Comments pageId={doc.id} />
           </article>}
       </div>

@@ -1,6 +1,7 @@
 import * as React from "react";
 import * as d3 from "d3";
 import { compactNotionId } from "../../utils/backlink-graph";
+import { compactGraphBounds, fitCompactGraph } from "../../utils/compact-graph-layout";
 
 const useIsomorphicLayoutEffect = typeof window === "undefined" ? React.useEffect : React.useLayoutEffect;
 
@@ -57,6 +58,8 @@ export function KnowledgeGraph({ data, activeId, variant = "full", className = "
     svg.selectAll("*").remove();
     const viewport = svg.append("g");
     const activeKey = compactNotionId(activeId);
+    const isCompact = variant === "compact";
+    const compactBounds = compactGraphBounds(size);
     const center = { x: size.width / 2, y: size.height / 2 };
     const graphRadius = Math.max(150, Math.min(size.width, size.height) * 0.43);
     const groupAngles = {
@@ -142,17 +145,32 @@ export function KnowledgeGraph({ data, activeId, variant = "full", className = "
         }
       });
 
-    node.append("circle").attr("r", (item) => {
+    const radius = (item: SimulationNode) => {
       if (item.kind === "group") return variant === "compact" ? 10 : 16;
       const connections = degree.get(compactNotionId(item.id)) || 0;
       const base = variant === "compact" ? 6 : 7;
       return compactNotionId(item.id) === activeKey ? base + 5 : base + Math.min(4, connections * 0.7);
-    });
+    };
+    const circles = node.append("circle").attr("r", radius);
+    let compactScale = 1;
+    const compactRadius = (item: SimulationNode) => compactNotionId(item.id) === activeKey
+      ? radius(item) : Math.max(3, radius(item) * compactScale);
     node.append("title").text((item) => item.title);
-    node.append("text").attr("x", 11).attr("y", 4).text((item) => {
-      const limit = variant === "compact" ? 18 : 28;
+    const labels = node.append("text").attr("x", 11).attr("y", 4).text((item) => {
+      const limit = isCompact ? Math.max(1, Math.min(18, Math.floor((size.width / 2 - 24) / 10))) : 28;
       return item.title.length > limit ? `${item.title.slice(0, limit)}…` : item.title;
     });
+    const compactLabelWidths = new Map<string, number>();
+    if (isCompact) labels.each(function (item) {
+      compactLabelWidths.set(item.id, this.getComputedTextLength());
+    });
+    const compactLabelX = (item: SimulationNode) => {
+      const x = item.x || 0;
+      const width = compactLabelWidths.get(item.id) || 0;
+      const offset = compactRadius(item) + 4;
+      return x + offset + width <= size.width - 6
+        ? x + offset : Math.max(6, x - offset - width);
+    };
 
     const groupOrder = ["post", "project", "recap", "document"] as const;
     const candidatesByGroup = groupOrder.map((group) => nodes
@@ -168,10 +186,6 @@ export function KnowledgeGraph({ data, activeId, variant = "full", className = "
 
     let currentTransform = d3.zoomIdentity;
     const updateLabelVisibility = (transform: any) => {
-      if (variant === "compact") {
-        node.classed("is-label-visible", true);
-        return;
-      }
       const scale = transform.k || 1;
       const maxLabels = scale < 0.75 ? 28 : scale < 1 ? 48 : scale < 1.5 ? 82 : scale < 2.2 ? 140 : nodes.length;
       const gap = scale < 1 ? 10 : 6;
@@ -179,18 +193,21 @@ export function KnowledgeGraph({ data, activeId, variant = "full", className = "
       const occupied: Array<{ left: number; right: number; top: number; bottom: number }> = [];
       const reserve = (item: SimulationNode, force = false) => {
         const key = compactNotionId(item.id);
-        const x = transform.applyX(item.x || 0) + 12;
+        const x = isCompact ? compactLabelX(item) : transform.applyX(item.x || 0) + 12;
         const y = transform.applyY(item.y || 0);
-        const width = Math.min(190, Math.max(34, item.title.length * 6.4));
+        const width = isCompact ? compactLabelWidths.get(item.id) || 0 : Math.min(190, Math.max(34, item.title.length * 6.4));
         const rectangle = { left: x - gap, right: x + width + gap, top: y - 10 - gap, bottom: y + 8 + gap };
         const overlaps = occupied.some((other) => rectangle.left < other.right && rectangle.right > other.left
           && rectangle.top < other.bottom && rectangle.bottom > other.top);
-        if (!force && overlaps) return false;
+        if (!force && (overlaps || occupiedNodes.some(({ id, x, y, radius }) =>
+          id !== item.id && x + radius > rectangle.left && x - radius < rectangle.right
+          && y + radius > rectangle.top && y - radius < rectangle.bottom))) return false;
         visible.add(key);
         occupied.push(rectangle);
         return true;
       };
 
+      const occupiedNodes = isCompact ? nodes.map((item) => ({ id: item.id, x: item.x || 0, y: item.y || 0, radius: compactRadius(item) })) : [];
       nodes.filter((item) => item.kind === "group" || compactNotionId(item.id) === activeKey)
         .forEach((item) => reserve(item, true));
       for (const item of labelCandidates) {
@@ -233,15 +250,23 @@ export function KnowledgeGraph({ data, activeId, variant = "full", className = "
 
     node.call(d3.drag()
       .on("start", (event, item) => {
+        if (isCompact) return;
         if (!event.active) simulation.alphaTarget(0.25).restart();
         item.fx = item.x;
         item.fy = item.y;
       })
       .on("drag", (event, item) => {
+        if (isCompact) {
+          item.x = Math.max(compactBounds.left, Math.min(compactBounds.right, event.x));
+          item.y = Math.max(compactBounds.top, Math.min(compactBounds.bottom, event.y));
+          renderPositions();
+          return;
+        }
         item.fx = event.x;
         item.fy = event.y;
       })
       .on("end", (event, item) => {
+        if (isCompact) return;
         if (!event.active) simulation.alphaTarget(0);
         item.fx = item.kind === "group" ? item.anchorX : null;
         item.fy = item.kind === "group" ? item.anchorY : null;
@@ -260,14 +285,21 @@ export function KnowledgeGraph({ data, activeId, variant = "full", className = "
         return `M${source.x || 0},${source.y || 0} L${target.x || 0},${target.y || 0}`;
       });
       node.attr("transform", (item) => `translate(${item.x || 0},${item.y || 0})`);
+      if (isCompact) labels.attr("x", (item) => compactLabelX(item) - (item.x || 0));
       labelTick += 1;
-      if (labelTick % 12 === 0) updateLabelVisibility(currentTransform);
+      if (isCompact || labelTick % 12 === 0) updateLabelVisibility(currentTransform);
     };
     simulation.on("tick", renderPositions);
 
     // Resolve the initial layout before the browser paints it. Later drag interactions restart the simulation.
     simulation.stop();
     simulation.tick(280);
+    if (isCompact) {
+      const fitted = fitCompactGraph(nodes.map(({ x, y }) => ({ x: x || 0, y: y || 0 })), size);
+      nodes.forEach((item, index) => Object.assign(item, fitted.points[index]));
+      compactScale = fitted.scale;
+      circles.attr("r", compactRadius);
+    }
     renderPositions();
 
     if (variant === "full") {
@@ -296,8 +328,6 @@ export function KnowledgeGraph({ data, activeId, variant = "full", className = "
         const translateY = size.height / 2 - scale * ((minY + maxY) / 2);
         svg.call(zoom.transform, d3.zoomIdentity.translate(translateX, translateY).scale(scale));
       }
-    } else {
-      updateLabelVisibility(currentTransform);
     }
 
     return () => simulation.stop();
