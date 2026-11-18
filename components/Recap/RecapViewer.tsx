@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import IonIcon from "@reacticons/ionicons";
-import { AnimatePresence, LayoutGroup, motion, useMotionValue, useTransform, type MotionValue } from "framer-motion";
+import { AnimatePresence, LayoutGroup, motion, useMotionValue, useTransform, type MotionValue, type MotionStyle } from "framer-motion";
 import { NotionRenderer } from "../../packages/notionx";
 import { Collection, Equation, Modal } from "../../utils/notion-components";
 import { RecapCode as Code } from "../Interactive/RecapCode";
@@ -193,7 +193,7 @@ function PropertyItemMotion({
   index: number;
   className: string;
   children: React.ReactNode;
-  style?: React.CSSProperties;
+  style?: MotionStyle;
 }) {
   const target = safeUrl(item.url);
   const animation = {
@@ -304,7 +304,7 @@ function ReadingContent({ slide }: { slide: PropertySlide }) {
       <div className={`recap-reading-stack recap-reading-stack-${count}`}>
         {slide.items.map((item, index) => {
           const artwork = safeUrl(item.artwork);
-          const bookStyle = artwork ? ({ "--recap-book-artwork": `url("${artwork}")` } as React.CSSProperties) : undefined;
+          const bookStyle = artwork ? ({ "--recap-book-artwork": `url("${artwork}")` } as MotionStyle) : undefined;
           return (
             <PropertyItemMotion key={`${item.title}-${index}`} item={item} index={index} className={`recap-reading-book ${artwork ? "has-artwork" : "no-artwork"}`} style={bookStyle}>
               <span className="recap-reading-copy">

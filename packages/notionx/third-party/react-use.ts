@@ -1,5 +1,6 @@
 // Imported from https://github.com/streamich/react-use
 import {
+  type CSSProperties,
   type Dispatch,
   type EffectCallback,
   type SetStateAction,
@@ -212,8 +213,8 @@ export const useLocalStorage = <T>(
 // More details here:
 // https://github.com/vercel/next.js/issues/17463
 export const useClientStyle = (
-  clientStyle: React.CSSProperties,
-  serverStyle: React.CSSProperties = {}
+  clientStyle: CSSProperties,
+  serverStyle: CSSProperties = {}
 ) => {
   const [isMounted, setIsMounted] = useState(false)
   useEffect(() => {
