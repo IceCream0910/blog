@@ -1,3 +1,5 @@
+import { isInteractiveBlock } from "../components/Interactive/parser";
+
 const HEADING_TYPES = new Set(["header", "sub_header", "sub_sub_header"]);
 
 function blockValue(entry) {
@@ -27,10 +29,18 @@ function splitSentences(text, limit = 360) {
 }
 
 export function prepareRecapRecordMap(recordMap, pageId) {
-  Object.keys(recordMap.block || {}).forEach((key) => {
-    const entry = recordMap.block[key];
-    if (entry?.value?.value && entry?.value?.role) recordMap.block[key] = entry.value;
-  });
+  const entries = Object.entries(recordMap.block || {});
+  const hidden = new Set(entries.filter(([, entry]) => isInteractiveBlock(blockValue(entry))).map(([id]) => id));
+  const blocks = {};
+  for (const [id, raw] of entries) {
+    if (hidden.has(id)) continue;
+    const entry = raw?.value?.value && raw?.value?.role ? raw.value : raw;
+    const block = blockValue(entry);
+    blocks[id] = block?.content?.some((child) => hidden.has(child))
+      ? { ...entry, value: { ...block, content: block.content.filter((child) => !hidden.has(child)) } }
+      : entry;
+  }
+  recordMap = { ...recordMap, block: blocks };
 
   const normalizedId = Object.keys(recordMap.block || {}).find((key) => key.replace(/-/g, "") === pageId.replace(/-/g, ""));
   const root = blockValue(recordMap.block?.[normalizedId]);

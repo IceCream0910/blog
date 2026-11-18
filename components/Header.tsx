@@ -88,7 +88,7 @@ export const Header: React.FC = () => {
                         type="button"
                         className="header-search-button"
                         aria-label="검색 열기"
-                        onClick={() => openSearch()}
+                        onClick={(event) => { event.currentTarget.focus({ preventScroll: true }); openSearch(); }}
                     >
                         <IonIcon name="search" style={{ marginTop: '4px' }} />
                     </button>

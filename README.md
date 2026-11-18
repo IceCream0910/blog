@@ -379,6 +379,10 @@ Forest DB에서 코드가 직접 참조하는 주요 속성:
 
 일반 포스팅의 카테고리·태그·작성일은 recordMap 내부 property ID도 참조합니다. Notion 속성을 새로 만들거나 복제하면 ID가 바뀔 수 있으므로 `hooks/usePostMetadata.js`와 게시물 판정 로직을 함께 확인해야 합니다.
 
+### 인터랙티브 콘텐츠
+
+Notion 코드 블록으로 차트, 자료구조, 커스텀 React를 작성하는 규약과 검증 절차는 [인터랙티브 콘텐츠 작성 가이드](docs/interactive-content.md)를 참고합니다.
+
 ### Integration 권한
 
 - 두 데이터베이스와 하위 페이지를 integration에 공유합니다.

@@ -9,5 +9,14 @@ module.exports = {
         }
         return config;
     },
+    async headers() {
+        return [{
+            source: "/interactive-sandbox.html",
+            headers: [{
+                key: "Content-Security-Policy",
+                value: "sandbox allow-scripts",
+            }],
+        }];
+    },
     staticPageGenerationTimeout: 300,
 };

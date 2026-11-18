@@ -45,3 +45,4 @@ yarn-error.log*
 next-env.d.ts
 
 /blog-audio-server
+/public/interactive-sandbox.html*

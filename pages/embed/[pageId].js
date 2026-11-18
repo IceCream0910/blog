@@ -2,7 +2,8 @@ import { NotionRenderer } from '../../packages/notionx'
 import 'katex/dist/katex.min.css'
 import { useEffect, useState } from 'react'
 import { calculateReadingTime } from '../../utils/readingTime'
-import { Code, Collection, Equation, Pdf, Modal } from '../../utils/notion-components'
+import { Collection, Equation, Pdf, Modal } from '../../utils/notion-components'
+import { InteractiveCode as Code } from "../../components/Interactive/InteractiveCode";
 import { getNotionPage, isNotionNotFound } from '../../utils/get-notion-page'
 import { notionPrerenderPaths, readPrerenderedNotionPage } from '../../utils/notion-prerender-data'
 
@@ -117,6 +118,7 @@ export default function Page({ pageId, recordMap }) {
         mediaQuery.addEventListener('change', handleColorSchemeChange);
 
         const handleMessage = (event) => {
+            if (event.source !== window.parent && event.source !== window.top) return;
             if (!event.data) return;
             const data = event.data;
             if (data.theme === 'dark' || data === 'dark' || data.darkMode === true || data.mode === 'dark') {
@@ -166,7 +168,7 @@ export default function Page({ pageId, recordMap }) {
     }, [darkmode]);
 
     return (
-        <div className="custom-content">
+        <div className="blog-embed custom-content">
             <NotionRenderer
                 recordMap={recordMap}
                 components={{
@@ -197,13 +199,12 @@ export default function Page({ pageId, recordMap }) {
                 background-color: transparent !important;
             }
 
-    header, aside {
+    header.site-header, .notion-aside {
         display: none !important;
     }
 
-    .custom-content {
-        width: 100dvw;
-        max-width: 100dvw;
+    .blog-embed {
+        width: 100%;
     }
 
     img {

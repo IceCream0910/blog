@@ -2,9 +2,11 @@ import React, { createContext, useState, useEffect } from "react";
 import 'prismjs/themes/prism-tomorrow.css';
 import "../styles/globals.css";
 import '../styles/notion.css'
+import "../styles/interactive.css";
 import '../styles/recap.css'
 import '../styles/forest.css'
 import '../styles/search.css'
+import '../styles/comments.css'
 import '../styles/graph.css'
 import '../styles/post-narration.css'
 import { Header } from "../components/Header";
@@ -55,7 +57,7 @@ export default function App({ Component, pageProps }) {
   }, [router]);
 
   return (
-    <ThemeProvider>
+    <ThemeProvider manageDocumentTheme={router.pathname !== "/embed/[pageId]"}>
       <SearchProvider>
       <currentPostContext.Provider value={{ title, postId, setTitle, setPostId }}>
         {loading ? title ? (

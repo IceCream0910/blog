@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import IonIcon from "@reacticons/ionicons";
 import { AnimatePresence, LayoutGroup, motion, useMotionValue, useTransform, type MotionValue } from "framer-motion";
 import { NotionRenderer } from "../../packages/notionx";
-import { Code, Collection, Equation, Modal } from "../../utils/notion-components";
+import { Collection, Equation, Modal } from "../../utils/notion-components";
+import { RecapCode as Code } from "../Interactive/RecapCode";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import SkyGradient from "./SkyGradient";
 import RecapCover from "./RecapCover";

@@ -7,6 +7,7 @@ const { join } = require('node:path');
 const { setTimeout: sleep } = require('node:timers/promises');
 const { loadEnvConfig } = require('@next/env');
 const ts = require('typescript');
+const { buildInteractive } = require('./build-interactive.cjs');
 
 // Load the same server utilities that Next uses, before its workers start.
 require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileModule(
@@ -64,6 +65,7 @@ async function preparePosts(dir) {
 }
 
 async function main() {
+  await buildInteractive();
   process.env.NODE_ENV ||= 'production';
   loadEnvConfig(process.cwd());
   const dir = await mkdtemp(join(tmpdir(), 'blog-notion-prerender-'));

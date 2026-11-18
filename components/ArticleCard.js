@@ -139,7 +139,7 @@ export const ArticleCard = ({ post, onClick }) => {
                     style={{ color: 'var(--date-text)' }}
                     className="text-xs mt-auto font-bold"
                 >
-                    {new Date(post.properties.작성일.date?.start).toLocaleDateString()}
+                    {new Date(post.properties.작성일.date?.start).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}
                 </motion.span>
 
                 {post.icon && (

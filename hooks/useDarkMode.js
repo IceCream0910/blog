@@ -13,7 +13,7 @@ const ThemeContext = createContext({
   setTheme: (newTheme) => {},
 });
 
-export const ThemeProvider = ({ children }) => {
+export const ThemeProvider = ({ children, manageDocumentTheme = true }) => {
   const [theme, setThemeState] = useState('system');
   const [systemDark, setSystemDark] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -44,7 +44,7 @@ export const ThemeProvider = ({ children }) => {
   const darkMode = theme === 'dark' ? true : theme === 'light' ? false : systemDark;
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || !manageDocumentTheme) return;
     const root = document.documentElement;
     if (darkMode) {
       root.classList.add('dark');
@@ -53,7 +53,7 @@ export const ThemeProvider = ({ children }) => {
       root.classList.add('light');
       root.classList.remove('dark');
     }
-  }, [darkMode, mounted]);
+  }, [darkMode, mounted, manageDocumentTheme]);
 
   return (
     <ThemeContext.Provider value={{ theme, darkMode, setTheme }}>

@@ -5,7 +5,8 @@ import Comments from '../components/Comments'
 import { Backlinks } from '../components/Backlinks'
 import { PageHead } from '../components/PageHead'
 import { motion } from 'framer-motion';
-import { Code, Collection, Equation, Modal } from '../utils/notion-components'
+import { Collection, Equation, Modal } from '../utils/notion-components'
+import { InteractiveCode as Code } from "../components/Interactive/InteractiveCode";
 import { getNotionPage, isNotionNotFound } from '../utils/get-notion-page'
 import { notionPrerenderPaths, readPrerenderedNotionPage } from '../utils/notion-prerender-data'
 import { getCachedSummary, manageSummary } from '../utils/notion-summary-service'

@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
+import IonIcon from "@reacticons/ionicons";
 import { useRouter } from "next/router";
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "framer-motion";
 import { AnswerMarkdown } from "./Search/AnswerMarkdown";
@@ -8,11 +9,17 @@ import { useSearchResults } from "../hooks/useSearchResults";
 import { SEARCH_SCOPES, scopeLabels, type SearchOptions, type SearchResult, type SearchScope } from "../utils/search/types";
 
 const MotionLink = motion.create(Link);
+const resultIcons = {
+  document: "document-text-outline",
+  post: "newspaper-outline",
+  project: "folder-outline",
+  recap: "calendar-outline",
+} as const;
 const resultKey = (query: string, id: string) => `${query.trim()}:${id}`;
 
 const SearchResultItem = React.forwardRef<HTMLAnchorElement, {
-  result: SearchResult; active: boolean; reducedMotion: boolean; onClose: () => void; onFocus: () => void;
-}>(function SearchResultItem({ result, active, reducedMotion, onClose, onFocus }, ref) {
+  result: SearchResult; index: number; active: boolean; reducedMotion: boolean; onClose: () => void; onFocus: () => void;
+}>(function SearchResultItem({ result, index, active, reducedMotion, onClose, onFocus }, ref) {
   const isPresent = useIsPresent();
   return <MotionLink ref={ref} href={result.href} className={`global-search-result ${active ? "is-selected" : ""}`}
     aria-hidden={!isPresent || undefined} tabIndex={isPresent ? 0 : -1} style={{ pointerEvents: isPresent ? "auto" : "none" }}
@@ -22,20 +29,33 @@ const SearchResultItem = React.forwardRef<HTMLAnchorElement, {
     exit={{ opacity: 0, y: reducedMotion ? 0 : -4, filter: reducedMotion ? "blur(0px)" : "blur(4px)" }}
     transition={{ duration: reducedMotion ? 0 : .18, ease: [.22, 1, .36, 1] }}
     onFocus={onFocus} onClick={(event) => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && event.button === 0) onClose(); }}>
-    <motion.div key={`${result.title}:${result.excerpt || ""}`}
+    <span aria-hidden="true" className="global-search-result-icon"><IonIcon name={resultIcons[result.type]} /></span>
+    <motion.div className="global-search-result-copy" key={`${result.title}:${result.excerpt || ""}`}
       initial={{ opacity: reducedMotion ? 1 : .45 }} animate={{ opacity: 1 }} transition={{ duration: reducedMotion ? 0 : .18 }}>
       <strong>{result.title}</strong>
-      <small>{scopeLabels[result.type]}{result.folderPath && ` · ${result.folderPath.replaceAll("/", " / ")}`}</small>
-      {result.excerpt && <p>{result.excerpt}</p>}
+      <small>
+        {scopeLabels[result.type]}{result.folderPath && ` · ${result.folderPath.replaceAll("/", " / ")}`}
+        {result.excerpt && ` · ${result.excerpt}`}
+      </small>
     </motion.div>
+    <span className="global-search-result-enter" aria-hidden="true">↵</span>
   </MotionLink>;
 });
+
+function SearchReveal({ children, reducedMotion }: { children: React.ReactNode; reducedMotion: boolean }) {
+  const isPresent = useIsPresent();
+  return <motion.div className="global-search-reveal" inert={!isPresent}
+    initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+    transition={{ duration: reducedMotion ? 0 : .24, ease: [.22, 1, .36, 1] }}>
+    {children}
+  </motion.div>;
+}
 
 export function Search({ onClose, initialOptions = {} }: { onClose: () => void; initialOptions?: SearchOptions }) {
   const router = useRouter();
   const aiGradientId = useId();
   const [query, setQuery] = useState("");
-  const [scope, setScope] = useState<SearchScope>("all");
+  const [scope, setScope] = useState<SearchScope>(initialOptions.scope || "all");
   const [folder, setFolder] = useState(initialOptions.folder || "");
   const { results, loading, error, partial } = useSearchResults(query, scope, folder);
   const reducedMotion = useReducedMotion();
@@ -55,7 +75,9 @@ export function Search({ onClose, initialOptions = {} }: { onClose: () => void; 
   const agentRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement;
+    const previous = document.activeElement instanceof HTMLElement && document.activeElement !== document.body
+      ? document.activeElement
+      : document.querySelector<HTMLElement>(".header-search-button");
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     inputRef.current?.focus();
@@ -142,29 +164,31 @@ export function Search({ onClose, initialOptions = {} }: { onClose: () => void; 
     }
   };
 
+  const hasQuery = !!query.trim();
+  const showResults = answerMode || (hasQuery && (!loading || results.length > 0));
+
   return <motion.div className="global-search-backdrop" aria-hidden={!isPresent || undefined}
-    initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-    animate={{ opacity: 1, backdropFilter: reducedMotion ? "blur(0px)" : "blur(8px)" }}
-    exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
     transition={{ duration: reducedMotion ? 0 : .24, ease: [.22, 1, .36, 1] }}
     style={{ pointerEvents: isPresent ? "auto" : "none" }}
     onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <motion.div ref={dialogRef} role="dialog" aria-modal="true" aria-label="블로그 검색" className="global-search"
-      initial={{ opacity: 0, y: reducedMotion ? 0 : 14, scale: reducedMotion ? 1 : .975, filter: reducedMotion ? "blur(0px)" : "blur(10px)" }}
-      animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-      exit={{ opacity: 0, y: reducedMotion ? 0 : 8, scale: reducedMotion ? 1 : .985, filter: reducedMotion ? "blur(0px)" : "blur(8px)" }}
+      initial={{ opacity: 0, y: reducedMotion ? 0 : 10, scale: reducedMotion ? 1 : .97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: reducedMotion ? 0 : 5, scale: reducedMotion ? 1 : .985 }}
       transition={{ duration: reducedMotion ? 0 : .22, ease: [.22, 1, .36, 1] }}
       onKeyDown={(event) => {
         if (event.nativeEvent.isComposing) return;
         if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onClose(); }
         if (event.key === "Tab") {
-          const elements = Array.from(dialogRef.current!.querySelectorAll<HTMLElement>('button:not(:disabled), a[href]:not([tabindex="-1"]), input'));
+          const elements = Array.from(dialogRef.current!.querySelectorAll<HTMLElement>('button:not(:disabled), a[href]:not([tabindex="-1"]), input, summary')).filter((element) => !element.closest("[inert]"));
           const first = elements[0]; const last = elements[elements.length - 1];
           if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
           else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
         }
       }}>
       <div className="global-search-input">
+        <span className="global-search-input-icon" aria-hidden="true"><IonIcon name="search-outline" /></span>
         <input ref={inputRef} value={query} maxLength={300} aria-label="블로그 검색어" placeholder="검색하거나 질문하세요"
           onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => {
             if (event.nativeEvent.isComposing) return;
@@ -177,37 +201,31 @@ export function Search({ onClose, initialOptions = {} }: { onClose: () => void; 
               onClose();
             }
           }} />
-        {query && <button type="button" aria-label="검색어 지우기" onClick={() => { setQuery(""); inputRef.current?.focus(); }}>지우기</button>}
-        <button type="button" aria-label="검색 닫기" onClick={onClose}>닫기</button>
+        <AnimatePresence initial={false}>
+          {loading && !answerMode && <motion.span className="global-search-loading" key="loading"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} aria-hidden="true">
+            <i /><i /><i />
+          </motion.span>}
+        </AnimatePresence>
+        {query && <button type="button" aria-label="검색어 지우기" onClick={() => { setQuery(""); inputRef.current?.focus(); }}>
+          <IonIcon name="close-circle" aria-hidden="true" />
+        </button>}
+        <button type="button" aria-label="검색 닫기" onClick={onClose}><IonIcon name="close" aria-hidden="true" /></button>
       </div>
-      <div className="global-search-scopes" role="group" aria-label="검색 범위">
-        <button type="button" className={answerMode ? "global-search-ai is-active" : "global-search-ai"} aria-pressed={answerMode} disabled={!query.trim()} onClick={() => { if (!answerMode) void askAgent(); }}>
-          <svg className="global-search-ai-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-            <defs><linearGradient id={aiGradientId} x1="0" y1="0" x2="1" y2="1">
-              <stop className="ai-gradient-start" offset="0%" stopColor="currentColor" /><stop className="ai-gradient-end" offset="100%" stopColor="currentColor" />
-            </linearGradient></defs>
-            <path fill={`url(#${aiGradientId})`} d="m10 2 2.8 7.2L20 12l-7.2 2.8L10 22l-2.8-7.2L0 12l7.2-2.8ZM20 1l1.1 2.9L24 5l-2.9 1.1L20 9l-1.1-2.9L16 5l2.9-1.1Z" />
-          </svg>
-          <span className="global-search-ai-label">AI</span>
-        </button>
-        {SEARCH_SCOPES.map((value) => <button key={value} type="button" aria-pressed={!answerMode && scope === value}
-          onClick={() => {
-            agentRef.current?.abort(); setAgentLoading(false); setAnswerMode(false); setAgentStopped(false);
-            setScope(value); setFolder("");
-          }}>{scopeLabels[value]}</button>)}
-      </div>
-      {folder && <button className="global-search-folder" type="button" onClick={() => setFolder("")}>{folder.replaceAll("/", " / ")} · 폴더 제한 해제</button>}
-      <motion.div className="global-search-body" layoutScroll>
+      {loading && !showResults && <span className="sr-only" role="status">검색 중이에요.</span>}
+      <AnimatePresence initial={false}>
+      {showResults && <SearchReveal reducedMotion={!!reducedMotion}>
+        <motion.div className="global-search-body" layoutScroll>
         {!answerMode && <>
         <div role="status" className="global-search-status">
-          {!query.trim() ? "제목과 본문을 검색합니다. 질문을 입력하고 AI 탭을 선택하면 답변을 생성합니다." : error ? `${results.length ? `검색 결과 ${results.length}개 · ` : ""}${error}` : loading ? results.length ? `검색 결과 ${results.length}개 · 갱신 중…` : "검색 중입니다…" : `검색 결과 ${results.length}개`}
+          {error ? `${results.length ? `검색 결과 ${results.length}개 · ` : ""}${error}` : loading ? results.length ? `검색 결과 ${results.length}개 · 갱신 중…` : "검색 중입니다…" : `검색 결과 ${results.length}개`}
           {partial && <p>본문 검색에 연결하지 못해 제목 검색 결과만 표시합니다.</p>}
         </div>
-        {query.trim() && !loading && !error && !results.length && <p className="global-search-status">일치하는 글이 없습니다. 검색어 또는 범위를 바꿔 보세요.</p>}
+        {query.trim() && !loading && !error && !results.length && <p className="global-search-empty">다른 검색어로 찾아보세요.</p>}
         <motion.div className="global-search-results" aria-label="검색 결과" aria-busy={loading}>
-          <AnimatePresence initial={false} mode="popLayout">
+          <AnimatePresence mode="popLayout">
           {results.map((result, index) => <SearchResultItem key={resultKey(query, result.id)} result={result}
-            active={selected === index} reducedMotion={!!reducedMotion} onClose={onClose} onFocus={() => setSelected(index)}
+            index={index} active={selected === index} reducedMotion={!!reducedMotion} onClose={onClose} onFocus={() => setSelected(index)}
             ref={(element) => {
               const key = resultKey(query, result.id);
               if (element) linksRef.current.set(key, element); else linksRef.current.delete(key);
@@ -232,7 +250,28 @@ export function Search({ onClose, initialOptions = {} }: { onClose: () => void; 
           {!!sources.length && <div aria-label="참고한 문서">{sources.map((source, index) => <Link key={source.id} href={source.href}
             target="_blank" rel="noopener noreferrer" aria-label={`${source.title} (새 탭)`}>[{index + 1}] {source.title}</Link>)}</div>}
         </motion.section>}
-      </motion.div>
+        </motion.div>
+      </SearchReveal>}
+      </AnimatePresence>
+      <div className="global-search-tools">
+        <div className="global-search-scopes" role="group" aria-label="검색 범위와 AI 답변">
+          {SEARCH_SCOPES.map((value) => <button key={value} type="button" aria-pressed={!answerMode && scope === value}
+            onClick={() => {
+              agentRef.current?.abort(); setAgentLoading(false); setAnswerMode(false); setAgentStopped(false);
+              setScope(value); setFolder("");
+            }}>{scopeLabels[value]}</button>)}
+          <button type="button" className={answerMode ? "global-search-ai is-active" : "global-search-ai"} aria-pressed={answerMode} disabled={!query.trim()} onClick={() => { if (!answerMode) void askAgent(); }}>
+            <svg className="global-search-ai-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+              <defs><linearGradient id={aiGradientId} x1="0" y1="0" x2="1" y2="1">
+                <stop className="ai-gradient-start" offset="0%" stopColor="currentColor" /><stop className="ai-gradient-end" offset="100%" stopColor="currentColor" />
+              </linearGradient></defs>
+              <path fill={`url(#${aiGradientId})`} d="m10 2 2.8 7.2L20 12l-7.2 2.8L10 22l-2.8-7.2L0 12l7.2-2.8ZM20 1l1.1 2.9L24 5l-2.9 1.1L20 9l-1.1-2.9L16 5l2.9-1.1Z" />
+            </svg>
+            <span className="global-search-ai-label">AI</span>
+          </button>
+        </div>
+        {folder && <button className="global-search-folder" type="button" onClick={() => setFolder("")}>{folder.replaceAll("/", " / ")} · 폴더 제한 해제</button>}
+      </div>
       {answerMode && agentLoading && <div className="global-search-footer">
         {agentLoading && <button type="button" onClick={() => { agentRef.current?.abort(); setAgentLoading(false); setAgentStopped(true);
           setProgress((current) => current.map((item) => item.state === "running" ? { ...item, state: "stopped" } : item)); }}>중지</button>}
